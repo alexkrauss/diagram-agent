@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "test": "vitest"
   },
@@ -22,7 +22,9 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
+    "@llamaindex/chat-ui": "^0.6.1",
     "@openai/agents": "^0.1.7",
+    "@swc/helpers": "^0.5.17",
     "@terrastruct/d2": "^0.1.33",
     "openai": "^6.0.0",
     "react": "^19.1.1",

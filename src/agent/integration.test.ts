@@ -22,12 +22,6 @@ describe('D2Agent Integration - Manual UI Scenario', () => {
     const historyAfterFirst = agent.getConversationHistory();
     const userMessagesAfterFirst = historyAfterFirst.filter(m => m.role === 'user');
 
-    console.log('After first message:', {
-      totalMessages: historyAfterFirst.length,
-      userMessages: userMessagesAfterFirst.length,
-      userContent: userMessagesAfterFirst.map(m => m.content),
-    });
-
     expect(userMessagesAfterFirst.length).toBe(1);
 
     // Send second message with SAME agent instance
@@ -39,12 +33,6 @@ describe('D2Agent Integration - Manual UI Scenario', () => {
 
     const historyAfterSecond = agent.getConversationHistory();
     const userMessagesAfterSecond = historyAfterSecond.filter(m => m.role === 'user');
-
-    console.log('After second message:', {
-      totalMessages: historyAfterSecond.length,
-      userMessages: userMessagesAfterSecond.length,
-      userContent: userMessagesAfterSecond.map(m => m.content),
-    });
 
     // This should be 2, not 1 (proving conversation persists)
     expect(userMessagesAfterSecond.length).toBe(2);
