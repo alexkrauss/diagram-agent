@@ -56,3 +56,4 @@ The agent emits events through a callback for UI updates:
 - Tailwind CSS for styling
 - OpenAI API for LLM capabilities
 - Strict TypeScript configuration enabled
+- We use functional separation of packages (source folders), not technical. Example: config/, ui/, agent/ instead of components/, hooks/.
