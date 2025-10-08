@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react';
 import { ChatSection } from '@llamaindex/chat-ui';
 import { useDiagramAgentHandler } from './hooks/useDiagramAgentHandler';
 import { D2RendererImpl } from './render';
+import { useConfig } from './config/useConfig';
 
 function App() {
-  const [apiKey, setApiKey] = useState('');
+  const [config, setConfig] = useConfig();
   const [svg, setSvg] = useState('');
   const [renderer] = useState(() => new D2RendererImpl());
 
   // Use the custom hook that bridges DiagramAgent with chat-ui
-  const handler = useDiagramAgentHandler({ apiKey });
+  const handler = useDiagramAgentHandler({ apiKey: config.apiKey });
 
   // Render D2 code to SVG whenever canvas changes
   useEffect(() => {
@@ -62,8 +63,8 @@ function App() {
           <input
             type="password"
             placeholder="OpenAI API Key"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
+            value={config.apiKey}
+            onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
             className="flex-1 p-2 border border-gray-300 rounded"
           />
           <button
