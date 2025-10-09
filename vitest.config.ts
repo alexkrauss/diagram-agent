@@ -1,9 +1,14 @@
 import { defineConfig } from "vitest/config";
 
-export default defineConfig({
-  test: {
-    environment: "node",
-    globals: true,
-    exclude: ["**/node_modules/**"],
-  },
+export default defineConfig(({ mode }) => {
+  return {
+    test: {
+      // Exclude .eval.ts files from normal test runs
+      exclude: ["**/node_modules/**", "**/*.eval.ts"],
+      environment: "node",
+      globals: true,
+      // Increase timeout for LLM agent tests
+      testTimeout: 30000, // 30 seconds
+    },
+  };
 });
