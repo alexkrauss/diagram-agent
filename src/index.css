@@ -1,3 +1,104 @@
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 217 33% 17%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 189 94% 43%;
+    --primary-foreground: 222 47% 11%;
+
+    --secondary: 263 70% 50%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 189 94% 43%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217 33% 25%;
+    --input: 217 33% 20%;
+    --ring: 189 94% 43%;
+
+    --radius: 0.5rem;
+
+    --status-ready: 142 71% 45%;
+    --status-running: 48 96% 53%;
+    --status-error: 0 72% 51%;
+
+    --editor-bg: 220 40% 12%;
+    --editor-text: 210 40% 98%;
+
+    --panel-border: 217 33% 20%;
+    --panel-header: 220 40% 14%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(189 94% 43%), hsl(263 70% 50%));
+    --gradient-panel: linear-gradient(180deg, hsl(220 40% 14%), hsl(217 33% 17%));
+    
+    --shadow-glow: 0 0 20px hsl(189 94% 43% / 0.3);
+    --shadow-elevated: 0 10px 30px -10px hsl(0 0% 0% / 0.5);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  .font-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  }
+}
+
+@layer components {
+  .panel-container {
+    @apply bg-card border-panel-border rounded-lg overflow-hidden;
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .panel-header {
+    @apply bg-panel-header border-b border-panel-border px-4 py-2.5 flex items-center justify-between;
+  }
+
+  .status-indicator {
+    @apply inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium;
+  }
+
+  .status-ready {
+    @apply bg-status-ready/10 text-status-ready border border-status-ready/30;
+  }
+
+  .status-running {
+    @apply bg-status-running/10 text-status-running border border-status-running/30;
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .status-error {
+    @apply bg-status-error/10 text-status-error border border-status-error/30;
+  }
+
+  .editor-panel {
+    @apply bg-editor-bg text-editor-text font-mono text-sm;
+  }
+}

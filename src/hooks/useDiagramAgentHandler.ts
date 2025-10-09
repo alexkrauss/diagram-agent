@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { d2AgentFactory, AgentEvent } from '../agent';
-import { ChatHandler, Message } from '@llamaindex/chat-ui';
+import { ChatHandler, Message } from './types';
 import {
   createInitialState,
   handleAgentEvent,

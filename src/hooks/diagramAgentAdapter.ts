@@ -1,5 +1,5 @@
 import { AgentEvent } from '../agent';
-import { Message } from '@llamaindex/chat-ui';
+import { Message } from './types';
 
 /**
  * State managed by the diagram agent handler.

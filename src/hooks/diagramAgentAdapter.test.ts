@@ -11,7 +11,7 @@ import {
   type DiagramAgentState,
 } from './diagramAgentAdapter';
 import type { AgentEvent } from '../agent';
-import type { Message } from '@llamaindex/chat-ui';
+import type { Message } from './types';
 
 describe('diagramAgentAdapter - Pure Functions', () => {
   let state: DiagramAgentState;
