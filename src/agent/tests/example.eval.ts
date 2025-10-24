@@ -11,16 +11,18 @@
  *   EVAL_MODE=true npm test
  */
 
-import { describe, expect } from 'vitest';
+import { describe } from 'vitest';
 import { conversation } from './conversation-testing';
-import type { DiagramAgent } from '../DiagramAgent';
+import type { DiagramAgent, AgentEvent } from '../DiagramAgent';
 import { D2Agent } from '../D2Agent';
 
 /**
  * Create a test agent instance using the OpenAI API key from environment.
  * Requires OPENAI_API_KEY to be set in .env file or environment variables.
+ *
+ * @param callback - Event callback for recording agent events
  */
-function createTestAgent(): DiagramAgent {
+function createTestAgent(callback: (event: AgentEvent) => void): DiagramAgent {
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
@@ -32,7 +34,7 @@ function createTestAgent(): DiagramAgent {
 
   return new D2Agent(
     { apiKey, model: 'gpt-4o' },
-    () => {} // Empty event callback for tests
+    callback
   );
 }
 
@@ -41,59 +43,59 @@ describe('DiagramAgent - Example Conversations', () => {
    * Simple single-turn test.
    * Creates a diagram and validates the result.
    */
-  conversation('Create simple diagram', createTestAgent, async (agent) => {
+  conversation('Create simple diagram', createTestAgent, async (agent, expect) => {
     // ACTION: Send message to agent
     await agent.send('Create a diagram with two boxes: Frontend and Backend');
 
     // OBSERVATION: Access canvas state
     const canvas = agent.canvas;
 
-    // ASSERTION: Use standard Vitest assertions on raw content
-    expect(canvas.content).toContain('Frontend');
-    expect(canvas.content).toContain('Backend');
-    expect(canvas.content.trim().length).toBeGreaterThan(0);
+    // ASSERTION: Use custom expect for recording
+    expect(canvas.content, 'Canvas should contain Frontend').toContain('Frontend');
+    expect(canvas.content, 'Canvas should contain Backend').toContain('Backend');
+    expect(canvas.content.trim().length, 'Canvas should not be empty').toBeGreaterThan(0);
   });
 
   /**
    * Multi-turn conversation test.
    * Builds up a diagram incrementally across multiple turns.
    */
-  conversation('Build architecture incrementally', createTestAgent, async (agent) => {
+  conversation('Build architecture incrementally', createTestAgent, async (agent, expect) => {
     // Turn 1: Create initial element
     await agent.send('Create a box called Web Server');
 
-    expect(agent.canvas.content).toContain('Web Server');
+    expect(agent.canvas.content, 'Canvas should contain Web Server').toContain('Web Server');
 
     const userMessages1 = agent.conversation.messages.filter((m) => m.role === 'user');
-    expect(userMessages1.length).toBe(1);
+    expect(userMessages1.length, 'Should have 1 user message').toBe(1);
 
     // Turn 2: Add connected element
     await agent.send('Add a Database box and connect it to the Web Server');
 
-    expect(agent.canvas.content).toContain('Web Server');
-    expect(agent.canvas.content).toContain('Database');
+    expect(agent.canvas.content, 'Canvas should still contain Web Server').toContain('Web Server');
+    expect(agent.canvas.content, 'Canvas should contain Database').toContain('Database');
 
     const userMessages2 = agent.conversation.messages.filter((m) => m.role === 'user');
-    expect(userMessages2.length).toBe(2);
+    expect(userMessages2.length, 'Should have 2 user messages').toBe(2);
 
     // Turn 3: Add another element
     await agent.send('Add a Load Balancer in front of the Web Server');
 
-    expect(agent.canvas.content).toContain('Load Balancer');
+    expect(agent.canvas.content, 'Canvas should contain Load Balancer').toContain('Load Balancer');
 
     // Validate conversation state
     const userMessages3 = agent.conversation.messages.filter((m) => m.role === 'user');
-    expect(userMessages3.length).toBe(3);
+    expect(userMessages3.length, 'Should have 3 user messages').toBe(3);
 
     const lastMessage = agent.conversation.messages[agent.conversation.messages.length - 1];
-    expect(lastMessage.role).toBe('canvas_update');
+    expect(lastMessage.role, 'Last message should be canvas update').toBe('canvas_update');
   });
 
   /**
    * Test with structural validation.
    * Checks connections between elements.
    */
-  conversation('Validate connections', createTestAgent, async (agent) => {
+  conversation('Validate connections', createTestAgent, async (agent, expect) => {
     await agent.send(
       'Create a diagram with Client, Server, and Database. ' +
         'Connect Client to Server, and Server to Database.'
@@ -115,7 +117,7 @@ describe('DiagramAgent - Example Conversations', () => {
    * Test conversation history inspection.
    * Validates that conversation state is properly tracked.
    */
-  conversation('Inspect conversation history', createTestAgent, async (agent) => {
+  conversation('Inspect conversation history', createTestAgent, async (agent, expect) => {
     await agent.send('Create box A');
     await agent.send('Create box B');
 
@@ -146,7 +148,7 @@ describe('DiagramAgent - Example Conversations', () => {
    * Test state snapshot and comparison.
    * Captures canvas state at different points.
    */
-  conversation('Compare canvas states', createTestAgent, async (agent) => {
+  conversation('Compare canvas states', createTestAgent, async (agent, expect) => {
     await agent.send('Create a Web Server');
 
     // Capture first state
@@ -169,7 +171,7 @@ describe('DiagramAgent - Example Conversations', () => {
    * Test error handling / edge cases.
    * Agent should handle unclear requests without crashing.
    */
-  conversation('Handle unclear request', createTestAgent, async (agent) => {
+  conversation('Handle unclear request', createTestAgent, async (agent, expect) => {
     // This tests that the agent handles unclear requests gracefully
     // The agent may choose to create something, ask for clarification, or do nothing
     await agent.send('Add a thing');

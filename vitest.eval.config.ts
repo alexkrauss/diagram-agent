@@ -18,6 +18,11 @@ export default defineConfig(({ mode }) => {
         // Make all environment variables from .env available to tests
         ...env,
       },
+      // Use custom reporter to generate HTML report
+      reporters: [
+        'default',  // Console output
+        './src/agent/tests/reporting/EvalReporter.ts'  // HTML report generation
+      ],
     },
   };
 });

@@ -2,14 +2,13 @@
  * Conversation Testing DSL for DiagramAgent
  *
  * This module provides a TypeScript-based DSL for evaluating the DiagramAgent
- * in a conversation-style manner. Tests collect metrics rather than failing,
- * allowing comprehensive evaluation of agent behavior.
+ * in a conversation-style manner. Tests collect detailed execution traces including
+ * all events, assertions, and canvas updates for HTML report generation.
  *
  * Key design principles:
- * - Separation of concerns: action (send) → observation (canvas, conversation) → assertion
  * - Single entry point: all state accessed via agent parameter
  * - Multi-turn support: agent maintains state across turns
- * - Evaluation focus: collect metrics, don't fail tests
+ * - Full event recording: capture everything for detailed HTML reports
  */
 
 import { it } from "vitest";
@@ -17,7 +16,12 @@ import type {
   DiagramAgent,
   ConversationMessage,
   AgentState,
+  AgentEvent,
 } from "../DiagramAgent";
+import { EventRecorder } from "./recording/EventRecorder";
+import { RecordingAgentWrapper, createRecordingCallback } from "./recording/RecordingAgentWrapper";
+import { createRecordingExpect, type ExpectFunction } from "./recording/RecordingExpect";
+import type { RecordedEvent } from "./recording/types";
 
 // =============================================================================
 // Core API
@@ -27,61 +31,104 @@ import type {
  * Define a conversation-based test.
  *
  * A conversation maintains state across multiple turns, allowing you to test
- * multi-turn interactions with the agent.
+ * multi-turn interactions with the agent. All events, assertions, and canvas
+ * updates are recorded for detailed HTML report generation.
  *
  * @param name - Descriptive name for the conversation test
- * @param agentOrFactory - DiagramAgent instance or factory function that creates an agent
- * @param fn - Test function receiving the wrapped agent
+ * @param agentFactory - Factory function that creates an agent with an event callback
+ * @param fn - Test function receiving the wrapped agent and custom expect function
  *
  * @example
  * ```typescript
- * // Using a factory function (recommended for lazy initialization)
- * conversation('Build architecture diagram', () => createDiagramAgent(), async (agent) => {
- *   await agent.send('Create a Web Server box');
- *   expect(agent.canvas.content).toContain('Web Server');
- * });
+ * // Define agent factory that accepts callback
+ * function createTestAgent(callback: (event: AgentEvent) => void): DiagramAgent {
+ *   return new D2Agent({ apiKey: '...', model: 'gpt-4o' }, callback);
+ * }
  *
- * // Using an agent instance
- * const myAgent = createDiagramAgent({ apiKey: '...', model: 'gpt-4o' });
- * conversation('Build architecture diagram', myAgent, async (agent) => {
+ * // Use in test with custom expect for recording
+ * conversation('Build architecture diagram', createTestAgent, async (agent, expect) => {
  *   await agent.send('Create a Web Server box');
- *   expect(agent.canvas.content).toContain('Web Server');
+ *   expect(agent.canvas.content, 'Canvas should contain Web Server').toContain('Web Server');
  * });
  * ```
  */
 export function conversation(
   name: string,
-  agentOrFactory: DiagramAgent | (() => DiagramAgent),
-  fn: (agent: AgentWrapper) => Promise<void>
+  agentFactory: (callback: (event: AgentEvent) => void) => DiagramAgent,
+  fn: (agent: AgentWrapper, expect: ExpectFunction) => Promise<void>
 ): void {
-  it(name, async () => {
-    // Create agent lazily if a factory function is provided
-    const agent = typeof agentOrFactory === 'function'
-      ? agentOrFactory()
-      : agentOrFactory;
-
-    const wrapper = new AgentWrapperImpl(agent);
+  it(name, async (testContext) => {
     const startTime = Date.now();
 
-    // Evaluation mode: collect metrics instead of failing
-    const result: EvaluationResult = {
-      name,
-      passed: true,
-      score: 1.0,
-      assertions: [],
-      duration: 0,
-    };
+    // Create event recorder for this test
+    const recorder = new EventRecorder();
+
+    // Create recording callback for agent events
+    const recordingCallback = createRecordingCallback(recorder);
+
+    // Create agent with recording callback
+    const agent = agentFactory(recordingCallback);
+
+    // Wrap agent to record interactions
+    const wrapper = new RecordingAgentWrapper(agent, recorder);
+
+    // Create recording expect function
+    const recordingExpect = createRecordingExpect(recorder);
 
     try {
-      await fn(wrapper);
-      result.duration = Date.now() - startTime;
-      EvalResults.record(name, result);
+      // Run test function with wrapper and custom expect
+      await fn(wrapper, recordingExpect);
+
+      const duration = Date.now() - startTime;
+      const summary = recorder.getSummary();
+
+      // Store events in test metadata for reporter to access
+      // Cast to allow writing custom metadata (documented Vitest feature)
+      const meta = testContext.task.meta as any;
+      meta.events = recorder.getEvents();
+      meta.passed = summary.failedAssertions === 0;
+      meta.summary = {
+        ...summary,
+        duration, // Override with actual test execution time
+      };
+
+      // If any assertions failed, throw error to mark test as failed
+      if (summary.failedAssertions > 0) {
+        const failedAssertions = recorder.getEvents()
+          .filter(e => e.type === 'assertion' && !(e as any).passed);
+
+        throw new Error(
+          `${summary.failedAssertions} assertion(s) failed:\n` +
+          failedAssertions.map((a: any) =>
+            `  - ${a.description || a.matcher}: ${a.error}`
+          ).join('\n')
+        );
+      }
+
     } catch (error) {
-      result.passed = false;
-      result.score = 0.0;
-      result.error = error instanceof Error ? error.message : String(error);
-      result.duration = Date.now() - startTime;
-      EvalResults.record(name, result);
+      const duration = Date.now() - startTime;
+
+      // Record error event
+      recorder.record({
+        type: 'error',
+        time: Date.now(),
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
+      // Store events even on failure
+      // Cast to allow writing custom metadata (documented Vitest feature)
+      const meta = testContext.task.meta as any;
+      meta.events = recorder.getEvents();
+      meta.passed = false;
+      meta.summary = {
+        ...recorder.getSummary(),
+        duration, // Include actual test execution time
+      };
+      meta.error = error instanceof Error ? error.message : String(error);
+
+      // Re-throw to mark test as failed
+      throw error;
     }
   });
 }
@@ -155,46 +202,7 @@ export interface AgentWrapper {
   reset(): void;
 }
 
-/**
- * Implementation of AgentWrapper that wraps a DiagramAgent.
- */
-class AgentWrapperImpl implements AgentWrapper {
-  private agent: DiagramAgent;
-
-  constructor(agent: DiagramAgent) {
-    this.agent = agent;
-  }
-
-  async send(message: string): Promise<void> {
-    await this.agent.sendMessage(message);
-  }
-
-  get canvas(): CanvasState {
-    return {
-      content: this.agent.getCanvasContent(),
-    };
-  }
-
-  get conversation(): ConversationState {
-    return {
-      messages: this.agent.getConversationHistory(),
-    };
-  }
-
-  get state(): AgentState {
-    return this.agent.getState();
-  }
-
-  reset(): void {
-    // Note: Current DiagramAgent interface doesn't have a reset method.
-    // This would need to be added to the interface if reset functionality is needed.
-    // For now, we throw an error to indicate it's not supported.
-    throw new Error(
-      'Reset not supported. DiagramAgent interface does not provide a reset method. ' +
-      'Create a new agent instance instead.'
-    );
-  }
-}
+// AgentWrapper implementation is now provided by RecordingAgentWrapper
 
 // =============================================================================
 // Canvas State
@@ -240,112 +248,28 @@ export interface ConversationState {
 }
 
 // =============================================================================
-// Evaluation Results
+// Test Metadata Types
 // =============================================================================
 
 /**
- * Results collected during evaluation tests.
- *
- * Conversation tests collect metrics instead of failing on assertion errors.
+ * Metadata stored in test.meta for reporter access
  */
-export interface EvaluationResult {
-  /** Name of the conversation test */
-  name: string;
+export interface TestMetadata {
+  /** All recorded events from the test execution */
+  events: RecordedEvent[];
 
-  /** Overall pass/fail status */
+  /** Whether all assertions passed */
   passed: boolean;
 
-  /** Aggregate score (0-1) */
-  score: number;
+  /** Summary statistics */
+  summary: {
+    totalEvents: number;
+    totalAssertions: number;
+    passedAssertions: number;
+    failedAssertions: number;
+    duration: number;
+  };
 
-  /** Results for each assertion */
-  assertions: AssertionResult[];
-
-  /** Execution time in milliseconds */
-  duration: number;
-
-  /** Any error that occurred */
+  /** Error message if test failed */
   error?: string;
-}
-
-export interface AssertionResult {
-  /** Description of what was asserted */
-  description: string;
-
-  /** Whether the assertion passed */
-  passed: boolean;
-
-  /** Score for this assertion (0-1) */
-  score: number;
-
-  /** Reason for pass/fail */
-  reason?: string;
-}
-
-/**
- * Summary report of all evaluation results.
- */
-export interface EvaluationReport {
-  /** Total number of conversations tested */
-  totalConversations: number;
-
-  /** Number of conversations that passed */
-  passedConversations: number;
-
-  /** Overall pass rate */
-  passRate: number;
-
-  /** Average score across all tests */
-  averageScore: number;
-
-  /** Detailed results per conversation */
-  conversations: EvaluationResult[];
-}
-
-/**
- * Global results collector for evaluation mode.
- */
-export namespace EvalResults {
-  const results: EvaluationResult[] = [];
-
-  /**
-   * Record results for a conversation test.
-   */
-  export function record(_name: string, result: EvaluationResult): void {
-    results.push(result);
-  }
-
-  /**
-   * Get all recorded results.
-   */
-  export function getAll(): EvaluationResult[] {
-    return [...results];
-  }
-
-  /**
-   * Generate a summary report.
-   */
-  export function generateReport(): EvaluationReport {
-    const totalConversations = results.length;
-    const passedConversations = results.filter((r) => r.passed).length;
-    const passRate = totalConversations > 0 ? passedConversations / totalConversations : 0;
-    const averageScore = totalConversations > 0
-      ? results.reduce((sum, r) => sum + r.score, 0) / totalConversations
-      : 0;
-
-    return {
-      totalConversations,
-      passedConversations,
-      passRate,
-      averageScore,
-      conversations: [...results],
-    };
-  }
-
-  /**
-   * Clear all recorded results.
-   */
-  export function clear(): void {
-    results.length = 0;
-  }
 }

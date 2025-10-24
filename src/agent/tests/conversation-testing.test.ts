@@ -3,8 +3,8 @@
  * These tests verify the harness works correctly without needing an OpenAI API key.
  */
 
-import { describe, expect, beforeEach } from 'vitest';
-import { conversation, EvalResults } from './conversation-testing';
+import { describe, expect } from 'vitest';
+import { conversation } from './conversation-testing';
 import type { DiagramAgent, ConversationMessage, AgentState } from '../DiagramAgent';
 
 /**
@@ -47,11 +47,6 @@ function createMockAgent(): DiagramAgent {
 }
 
 describe('Conversation Testing Harness', () => {
-  beforeEach(() => {
-    // Clear evaluation results before each test
-    EvalResults.clear();
-  });
-
   conversation('Basic send and canvas access', createMockAgent, async (agent) => {
     await agent.send('Create box A');
 
