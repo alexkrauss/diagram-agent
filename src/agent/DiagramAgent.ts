@@ -155,6 +155,12 @@ export interface DiagramAgent {
    * @returns The current agent state (idle, thinking, or running_tool).
    */
   getState(): AgentState;
+
+  /**
+   * Sets the rendered image of the current canvas to be included in the next message.
+   * @param pngBase64DataUrl - The PNG image as a base64 data URL (data:image/png;base64,...)
+   */
+  setRenderedImage(pngBase64DataUrl: string): void;
 }
 
 /**

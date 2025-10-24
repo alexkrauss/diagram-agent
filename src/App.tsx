@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Toaster } from '@/components/ui/sonner';
 import { StatusBar } from '@/components/StatusBar';
@@ -7,44 +7,24 @@ import { ChatPanel } from '@/components/ChatPanel';
 import { CanvasPanel } from '@/components/CanvasPanel';
 import { RenderPanel } from '@/components/RenderPanel';
 import { useDiagramAgentHandler } from '@/hooks/useDiagramAgentHandler';
-import { D2RendererImpl } from '@/render';
+import { D2RendererImpl, createImageConverter } from '@/render';
 import { useConfig } from '@/config/useConfig';
 
 function App() {
   const [config, setConfig] = useConfig();
-  const [svg, setSvg] = useState('');
-  const [renderError, setRenderError] = useState<string>('');
   const [renderer] = useState(() => new D2RendererImpl());
+  const [imageConverter] = useState(() => createImageConverter());
   const [isCanvasCollapsed, setIsCanvasCollapsed] = useState(false);
 
-  // Use the custom hook that manages the agent and chat state
-  const handler = useDiagramAgentHandler({ apiKey: config.apiKey });
-
-  // Render D2 code to SVG whenever canvas changes
-  useEffect(() => {
-    const renderDiagram = async () => {
-      if (handler.canvasContent) {
-        const result = await renderer.render(handler.canvasContent);
-        if (result.error) {
-          console.error('Render error:', result.error);
-          setRenderError(result.error);
-          setSvg('');
-        } else {
-          setRenderError('');
-          setSvg(result.svg);
-        }
-      } else {
-        setSvg('');
-        setRenderError('');
-      }
-    };
-    renderDiagram();
-  }, [handler.canvasContent, renderer]);
+  // Use the custom hook that manages the agent, chat state, and feedback loop
+  const handler = useDiagramAgentHandler({
+    apiKey: config.apiKey,
+    renderer,
+    imageConverter
+  });
 
   const handleReset = () => {
     handler.clearChat();
-    setSvg('');
-    setRenderError('');
   };
 
   const handleApiKeyChange = (newApiKey: string) => {
@@ -87,8 +67,8 @@ function App() {
 
             <ResizablePanel defaultSize={40} minSize={30}>
               <RenderPanel
-                svg={svg}
-                error={renderError}
+                svg={handler.svg}
+                error={handler.renderError}
                 onExpand={isCanvasCollapsed ? () => setIsCanvasCollapsed(false) : undefined}
               />
             </ResizablePanel>

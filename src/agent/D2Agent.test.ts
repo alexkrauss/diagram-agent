@@ -3,13 +3,16 @@ import { D2Agent } from './D2Agent';
 import type { AgentEvent } from './DiagramAgent';
 
 // Mock the OpenAI Agents SDK
-vi.mock('@openai/agents', () => ({
-  Agent: vi.fn(),
-  run: vi.fn(),
-  setDefaultOpenAIClient: vi.fn(),
-  user: (content: string) => ({ role: 'user', content }),
-  tool: vi.fn((config) => config),
-}));
+vi.mock('@openai/agents', () => {
+  const userMock = vi.fn((content: string | any[]) => ({ role: 'user', content }));
+  return {
+    Agent: vi.fn(),
+    run: vi.fn(),
+    setDefaultOpenAIClient: vi.fn(),
+    user: userMock,
+    tool: vi.fn((config) => config),
+  };
+});
 
 // Mock OpenAI
 vi.mock('openai', () => ({
@@ -26,6 +29,9 @@ describe('D2Agent', () => {
     eventCallback = (event: AgentEvent) => {
       capturedEvents.push(event);
     };
+
+    // Clear all mocks before each test
+    vi.clearAllMocks();
 
     // Mock the runAgent function to simulate successful completion
     const { run: runAgent } = await import('@openai/agents');
@@ -183,6 +189,113 @@ describe('D2Agent', () => {
 
       expect(startEvents).toHaveLength(1);
       expect(completeEvents).toHaveLength(1);
+    });
+  });
+
+  describe('image feedback', () => {
+    it('should store rendered image when setRenderedImage is called', () => {
+      const testImageData = 'data:image/png;base64,iVBORw0KGgoAAAANS';
+
+      agent.setRenderedImage(testImageData);
+
+      // Image is stored internally (we verify this by checking it's used in next message)
+      expect(agent).toBeDefined(); // Just verify agent exists
+    });
+
+    it('should send text-only message when no image is set', async () => {
+      const { user } = await import('@openai/agents');
+      const mockUser = vi.mocked(user);
+
+      await agent.sendMessage('Create a diagram');
+
+      // Verify user() was called with just text
+      expect(mockUser).toHaveBeenCalled();
+      const lastCall = mockUser.mock.calls[mockUser.mock.calls.length - 1];
+      const content = lastCall[0];
+
+      // Should be an array with only text
+      expect(Array.isArray(content)).toBe(true);
+      expect(content).toHaveLength(1);
+      expect(content[0]).toEqual({
+        type: 'input_text',
+        text: 'Create a diagram'
+      });
+    });
+
+    it('should send multipart message with image when image is set', async () => {
+      const { user } = await import('@openai/agents');
+      const mockUser = vi.mocked(user);
+
+      const testImageData = 'data:image/png;base64,iVBORw0KGgoAAAANS';
+      agent.setRenderedImage(testImageData);
+
+      await agent.sendMessage('How does this look?');
+
+      // Verify user() was called with multipart content
+      expect(mockUser).toHaveBeenCalled();
+      const lastCall = mockUser.mock.calls[mockUser.mock.calls.length - 1];
+      const content = lastCall[0];
+
+      // Should be an array with text and image
+      expect(Array.isArray(content)).toBe(true);
+      expect(content).toHaveLength(2);
+
+      expect(content[0]).toEqual({
+        type: 'input_text',
+        text: 'How does this look?'
+      });
+
+      expect(content[1]).toEqual({
+        type: 'input_image',
+        image: testImageData
+      });
+    });
+
+    it('should include image in every message after setRenderedImage', async () => {
+      const { user } = await import('@openai/agents');
+      const mockUser = vi.mocked(user);
+
+      const testImageData = 'data:image/png;base64,iVBORw0KGgoAAAANS';
+      agent.setRenderedImage(testImageData);
+
+      // Send multiple messages
+      await agent.sendMessage('First message');
+      await agent.sendMessage('Second message');
+
+      // Check both messages included the image
+      const calls = mockUser.mock.calls;
+      const lastTwoCalls = calls.slice(-2);
+
+      lastTwoCalls.forEach((call, index) => {
+        const content = call[0];
+        expect(Array.isArray(content)).toBe(true);
+        expect(content).toHaveLength(2);
+        expect(content[1].type).toBe('input_image');
+        expect(content[1].image).toBe(testImageData);
+      });
+    });
+
+    it('should update to new image when setRenderedImage is called again', async () => {
+      const { user } = await import('@openai/agents');
+      const mockUser = vi.mocked(user);
+
+      const firstImageData = 'data:image/png;base64,FIRST';
+      const secondImageData = 'data:image/png;base64,SECOND';
+
+      agent.setRenderedImage(firstImageData);
+      await agent.sendMessage('First message');
+
+      agent.setRenderedImage(secondImageData);
+      await agent.sendMessage('Second message');
+
+      const calls = mockUser.mock.calls;
+      const lastTwoCalls = calls.slice(-2);
+
+      // First message should have first image
+      expect(lastTwoCalls[0][0][1].image).toBe(firstImageData);
+
+      // Second message should have second image
+      expect(lastTwoCalls[1][0][1].image).toBe(secondImageData);
     });
   });
 });

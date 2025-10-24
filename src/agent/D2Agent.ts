@@ -11,6 +11,7 @@ export class D2Agent implements DiagramAgent {
   private internalHistory: AgentInputItem[] = [];
   private conversationMessages: ConversationMessage[] = [];
   private currentState: AgentState = { status: "idle" };
+  private lastRenderedImage?: string;
 
   constructor(
     config: DiagramAgentConfig,
@@ -63,6 +64,10 @@ export class D2Agent implements DiagramAgent {
     return this.currentState;
   }
 
+  setRenderedImage(pngBase64DataUrl: string): void {
+    this.lastRenderedImage = pngBase64DataUrl;
+  }
+
   private emit(event: AgentEvent): void {
     this.eventCallback(event);
   }
@@ -71,8 +76,21 @@ export class D2Agent implements DiagramAgent {
     this.emit({ type: "start" });
     this.currentState = { status: "thinking" };
 
+    // Build message content with text and optionally image
+    const content: Array<{ type: string; text?: string; image?: string }> = [
+      { type: "input_text", text: userMessage }
+    ];
+
+    // Include rendered image if available
+    if (this.lastRenderedImage) {
+      content.push({
+        type: "input_image",
+        image: this.lastRenderedImage
+      });
+    }
+
     // Add user message to both internal and conversation history
-    const userMsg = user(userMessage);
+    const userMsg = user(content as any);
     this.internalHistory.push(userMsg);
     this.conversationMessages.push({
       role: "user",
@@ -90,10 +108,9 @@ export class D2Agent implements DiagramAgent {
         if (event.type === "raw_model_stream_event") {
           // Handle text streaming
           const data = event.data;
-          if (data && typeof data === "object" && "choices" in data) {
-            const choices = data.choices as any[];
-            if (choices && choices[0]?.delta?.content) {
-              const chunk = choices[0].delta.content;
+          if (data && typeof data === "object" && "type" in data && data.type === "output_text_delta") {
+            const chunk = (data as any).delta;
+            if (chunk) {
               currentAssistantMessage += chunk;
               this.emit({
                 type: "model_response",
