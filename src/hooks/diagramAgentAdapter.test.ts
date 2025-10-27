@@ -322,7 +322,7 @@ describe('diagramAgentAdapter - Pure Functions', () => {
     const message: Message = {
       id: 'test-1',
       role: 'user',
-      parts: [{ type: 'data-file', data: {} }]
+      parts: [{ type: 'file', file: new File([], 'test.txt') }]
     };
 
     const text = extractTextFromMessage(message);
@@ -335,7 +335,7 @@ describe('diagramAgentAdapter - Pure Functions', () => {
       id: 'test-1',
       role: 'user',
       parts: [
-        { type: 'data-file', data: {} },
+        { type: 'file', file: new File([], 'test.txt') },
         { type: 'text', text: 'First text' },
         { type: 'text', text: 'Second text' }
       ]

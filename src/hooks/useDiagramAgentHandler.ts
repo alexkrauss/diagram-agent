@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { d2AgentFactory, AgentEvent } from '../agent';
 import { ChatHandler, Message } from './types';
 import {

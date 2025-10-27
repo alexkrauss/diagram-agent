@@ -3,10 +3,6 @@
  */
 export interface RenderResult {
   /**
-   * The rendered SVG content, if successful.
-   */
-  svg?: string;
-  /**
    * The rendered PNG as base64 data URL, if successful.
    */
   png?: string;
@@ -39,7 +35,7 @@ export interface DiagramAgentConfig {
   model?: string;
 
   /**
-   * Function to render D2 content to SVG/PNG.
+   * Function to render D2 content to PNG.
    * The agent will call this function after updating the canvas
    * to provide visual feedback to the model.
    */

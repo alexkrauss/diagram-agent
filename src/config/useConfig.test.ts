@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useConfig } from './useConfig';
 
 // Mock localStorage
 const localStorageMock = (() => {

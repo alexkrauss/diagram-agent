@@ -65,7 +65,7 @@ describe('D2Agent', () => {
     });
 
     // Mock render function for testing
-    const mockRenderFunction = vi.fn(async (d2Content: string) => {
+    const mockRenderFunction = vi.fn(async (_d2Content: string) => {
       return {
         svg: '<svg>mock</svg>',
         png: 'data:image/png;base64,mockdata',
@@ -210,12 +210,21 @@ describe('D2Agent', () => {
       const { tool } = await import('@openai/agents');
       vi.mocked(tool).mockImplementation((config) => {
         toolConfig = config;
-        return config;
+        return {
+          type: 'function',
+          name: config.name || 'mock_tool',
+          description: config.description,
+          parameters: config.parameters,
+          strict: config.strict ?? true,
+          invoke: vi.fn(),
+          needsApproval: vi.fn(async () => false),
+          isEnabled: vi.fn(async () => true),
+        } as any;
       });
 
       // Reset mocks
       capturedEvents = [];
-      mockRenderFunction = vi.fn(async (d2Content: string) => {
+      mockRenderFunction = vi.fn(async (_d2Content: string) => {
         return {
           svg: '<svg>mock</svg>',
           png: 'data:image/png;base64,mockdata',
@@ -339,11 +348,12 @@ describe('D2Agent', () => {
 
       await agent.sendMessage('Create diagram');
 
-      // Tool should return ToolOutputImage
+      // Tool should return ToolOutputImage with nested format
       expect(toolResult).toBeDefined();
       expect(toolResult.type).toBe('image');
-      expect(toolResult.mediaType).toBe('image/png');
-      expect(toolResult.data).toBe('mockdata'); // Without data URL prefix
+      expect(toolResult.image).toBeDefined();
+      expect(toolResult.image.mediaType).toBe('image/png');
+      expect(toolResult.image.data).toBe('mockdata'); // Without data URL prefix
     });
 
     it('should return error text when rendering fails', async () => {

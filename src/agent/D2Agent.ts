@@ -1,6 +1,18 @@
-import { Agent, run as runAgent, setDefaultOpenAIClient, user, AgentInputItem } from "@openai/agents";
+import {
+  Agent,
+  run as runAgent,
+  setDefaultOpenAIClient,
+  user,
+  AgentInputItem,
+} from "@openai/agents";
 import { OpenAI } from "openai";
-import { DiagramAgent, DiagramAgentConfig, AgentEvent, ConversationMessage, AgentState } from "./DiagramAgent";
+import {
+  DiagramAgent,
+  DiagramAgentConfig,
+  AgentEvent,
+  ConversationMessage,
+  AgentState,
+} from "./DiagramAgent";
 import { createReplaceCanvasTool } from "./tools/replaceCanvasTool";
 import systemPrompt from "./system_prompt.md?raw";
 
@@ -26,27 +38,24 @@ export class D2Agent implements DiagramAgent {
     setDefaultOpenAIClient(client as any);
 
     // Create tool with canvas state management and rendering
-    const replaceCanvasTool = createReplaceCanvasTool(
-      (content) => {
-        // Set state to rendering - tool execution is happening
-        this.currentState = { status: "rendering" };
+    const replaceCanvasTool = createReplaceCanvasTool((content) => {
+      // Set state to rendering - tool execution is happening
+      this.currentState = { status: "rendering" };
 
-        this.canvas = content;
+      this.canvas = content;
 
-        // Add canvas update message to conversation history
-        this.conversationMessages.push({
-          role: "canvas_update",
-          content: content,
-          timestamp: new Date(),
-        });
+      // Add canvas update message to conversation history
+      this.conversationMessages.push({
+        role: "canvas_update",
+        content: content,
+        timestamp: new Date(),
+      });
 
-        this.emit({
-          type: "canvas_update",
-          content: this.canvas,
-        });
-      },
-      config.renderFunction
-    );
+      this.emit({
+        type: "canvas_update",
+        content: this.canvas,
+      });
+    }, config.renderFunction);
 
     // Create agent with instructions and tools
     this.agent = new Agent({
@@ -88,7 +97,9 @@ export class D2Agent implements DiagramAgent {
 
     try {
       // Pass full conversation history to maintain context
-      const result = await runAgent(this.agent, this.internalHistory, { stream: true });
+      const result = await runAgent(this.agent, this.internalHistory, {
+        stream: true,
+      });
 
       let currentAssistantMessage = "";
 
@@ -96,7 +107,12 @@ export class D2Agent implements DiagramAgent {
         if (event.type === "raw_model_stream_event") {
           // Handle text streaming
           const data = event.data;
-          if (data && typeof data === "object" && "type" in data && data.type === "output_text_delta") {
+          if (
+            data &&
+            typeof data === "object" &&
+            "type" in data &&
+            data.type === "output_text_delta"
+          ) {
             const chunk = (data as any).delta;
             if (chunk) {
               currentAssistantMessage += chunk;
@@ -123,6 +139,7 @@ export class D2Agent implements DiagramAgent {
 
       // Add all new output items (assistant responses, tool calls, etc.) to internal history
       // Use `output` instead of `newItems` as it contains AgentInputItem types
+      console.log(result.output);
       this.internalHistory.push(...result.output);
 
       this.currentState = { status: "idle" };
