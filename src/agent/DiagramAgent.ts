@@ -1,4 +1,28 @@
 /**
+ * Result of rendering D2 diagram content.
+ */
+export interface RenderResult {
+  /**
+   * The rendered SVG content, if successful.
+   */
+  svg?: string;
+  /**
+   * The rendered PNG as base64 data URL, if successful.
+   */
+  png?: string;
+  /**
+   * Error message if rendering failed.
+   */
+  error?: string;
+}
+
+/**
+ * Function that renders D2 diagram content and returns the result.
+ * This function is called by the agent's tools to provide visual feedback.
+ */
+export type RenderFunction = (d2Content: string) => Promise<RenderResult>;
+
+/**
  * Represents the configuration required to initialize the DiagramAgent.
  * This would typically be used in a factory function that creates an agent instance.
  */
@@ -13,6 +37,13 @@ export interface DiagramAgentConfig {
    * @default 'gpt-4o'
    */
   model?: string;
+
+  /**
+   * Function to render D2 content to SVG/PNG.
+   * The agent will call this function after updating the canvas
+   * to provide visual feedback to the model.
+   */
+  renderFunction: RenderFunction;
 }
 
 // --- Conversation Message Types ---
@@ -49,7 +80,7 @@ export type ConversationMessage =
 export type AgentState =
   | { status: "idle" }
   | { status: "thinking" }
-  | { status: "running_tool"; toolName: string };
+  | { status: "rendering" };
 
 // --- Agent Events ---
 
@@ -155,12 +186,6 @@ export interface DiagramAgent {
    * @returns The current agent state (idle, thinking, or running_tool).
    */
   getState(): AgentState;
-
-  /**
-   * Sets the rendered image of the current canvas to be included in the next message.
-   * @param pngBase64DataUrl - The PNG image as a base64 data URL (data:image/png;base64,...)
-   */
-  setRenderedImage(pngBase64DataUrl: string): void;
 }
 
 /**

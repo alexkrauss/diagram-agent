@@ -51,14 +51,36 @@ export function useDiagramAgentHandler(
     setState(currentState => handleAgentEvent(currentState, event));
   }, []);
 
+  // Create render function that the agent will call during tool execution
+  const renderFunction = useCallback(async (d2Content: string) => {
+    const result = await renderer.render(d2Content);
+
+    if (result.error) {
+      return { error: result.error };
+    }
+
+    // Update local UI state with SVG
+    setSvg(result.svg);
+    setRenderError('');
+
+    // Convert SVG to PNG for the agent
+    try {
+      const pngBase64 = await imageConverter.svgToPngBase64(result.svg);
+      return { svg: result.svg, png: pngBase64 };
+    } catch (error) {
+      console.error('Failed to convert SVG to PNG:', error);
+      return { svg: result.svg, error: 'Failed to convert to PNG' };
+    }
+  }, [renderer, imageConverter]);
+
   // Create agent instance with memoization
   const agent = useMemo(() => {
     if (!apiKey.trim()) return null;
     return d2AgentFactory.createAgent(
-      { apiKey },
+      { apiKey, renderFunction },
       agentEventCallback
     );
-  }, [apiKey, agentEventCallback]);
+  }, [apiKey, renderFunction, agentEventCallback]);
 
   const sendMessage = useCallback(
     async (msg: Message) => {
@@ -87,61 +109,6 @@ export function useDiagramAgentHandler(
     setSvg('');
     setRenderError('');
   }, []);
-
-  // Feedback loop: Render D2 code and send visual feedback to agent
-  useEffect(() => {
-    const renderAndSendFeedback = async () => {
-      if (!state.canvasContent || !agent) {
-        setSvg('');
-        setRenderError('');
-        return;
-      }
-
-      const result = await renderer.render(state.canvasContent);
-
-      if (result.error) {
-        console.error('Render error:', result.error);
-        setRenderError(result.error);
-        setSvg('');
-
-        // Send error feedback to agent immediately
-        const feedbackMessage: Message = {
-          id: crypto.randomUUID(),
-          role: 'user',
-          parts: [{
-            type: 'text',
-            text: `Rendering failed with error: ${result.error}`
-          }]
-        };
-
-        await sendMessage(feedbackMessage);
-      } else {
-        setRenderError('');
-        setSvg(result.svg);
-
-        // Convert SVG to PNG and send image feedback to agent immediately
-        try {
-          const pngBase64 = await imageConverter.svgToPngBase64(result.svg);
-          agent.setRenderedImage(pngBase64);
-
-          const feedbackMessage: Message = {
-            id: crypto.randomUUID(),
-            role: 'user',
-            parts: [{
-              type: 'text',
-              text: 'Here is the rendered diagram:'
-            }]
-          };
-
-          await sendMessage(feedbackMessage);
-        } catch (error) {
-          console.error('Failed to convert SVG to PNG:', error);
-        }
-      }
-    };
-
-    renderAndSendFeedback();
-  }, [state.canvasContent, agent, renderer, imageConverter, sendMessage]);
 
   return {
     messages: state.messages,

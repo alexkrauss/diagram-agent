@@ -11,7 +11,6 @@ export class D2Agent implements DiagramAgent {
   private internalHistory: AgentInputItem[] = [];
   private conversationMessages: ConversationMessage[] = [];
   private currentState: AgentState = { status: "idle" };
-  private lastRenderedImage?: string;
 
   constructor(
     config: DiagramAgentConfig,
@@ -26,22 +25,28 @@ export class D2Agent implements DiagramAgent {
     });
     setDefaultOpenAIClient(client as any);
 
-    // Create tool with canvas state management
-    const replaceCanvasTool = createReplaceCanvasTool((content) => {
-      this.canvas = content;
+    // Create tool with canvas state management and rendering
+    const replaceCanvasTool = createReplaceCanvasTool(
+      (content) => {
+        // Set state to rendering - tool execution is happening
+        this.currentState = { status: "rendering" };
 
-      // Add canvas update message to conversation history
-      this.conversationMessages.push({
-        role: "canvas_update",
-        content: content,
-        timestamp: new Date(),
-      });
+        this.canvas = content;
 
-      this.emit({
-        type: "canvas_update",
-        content: this.canvas,
-      });
-    });
+        // Add canvas update message to conversation history
+        this.conversationMessages.push({
+          role: "canvas_update",
+          content: content,
+          timestamp: new Date(),
+        });
+
+        this.emit({
+          type: "canvas_update",
+          content: this.canvas,
+        });
+      },
+      config.renderFunction
+    );
 
     // Create agent with instructions and tools
     this.agent = new Agent({
@@ -64,10 +69,6 @@ export class D2Agent implements DiagramAgent {
     return this.currentState;
   }
 
-  setRenderedImage(pngBase64DataUrl: string): void {
-    this.lastRenderedImage = pngBase64DataUrl;
-  }
-
   private emit(event: AgentEvent): void {
     this.eventCallback(event);
   }
@@ -76,21 +77,8 @@ export class D2Agent implements DiagramAgent {
     this.emit({ type: "start" });
     this.currentState = { status: "thinking" };
 
-    // Build message content with text and optionally image
-    const content: Array<{ type: string; text?: string; image?: string }> = [
-      { type: "input_text", text: userMessage }
-    ];
-
-    // Include rendered image if available
-    if (this.lastRenderedImage) {
-      content.push({
-        type: "input_image",
-        image: this.lastRenderedImage
-      });
-    }
-
     // Add user message to both internal and conversation history
-    const userMsg = user(content as any);
+    const userMsg = user(userMessage);
     this.internalHistory.push(userMsg);
     this.conversationMessages.push({
       role: "user",
@@ -116,31 +104,6 @@ export class D2Agent implements DiagramAgent {
                 type: "model_response",
                 chunk: chunk,
               });
-            }
-          }
-        } else if (event.type === "run_item_stream_event") {
-          // Handle tool calls
-          const itemData = (event as any).data;
-          if (itemData && typeof itemData === "object" && "type" in itemData) {
-            if (
-              itemData.type === "function_call" ||
-              itemData.type === "tool_call"
-            ) {
-              const toolName =
-                (itemData as any).function?.name || "replace_canvas";
-              const toolArgs =
-                (itemData as any).function?.arguments || itemData;
-
-              this.currentState = { status: "running_tool", toolName };
-
-              this.emit({
-                type: "tool_start",
-                name: toolName,
-                args: toolArgs,
-              });
-
-              // Note: tool_end would be emitted after execution, but the SDK doesn't provide
-              // a clear hook for this. Canvas updates serve as implicit tool completion signals.
             }
           }
         }

@@ -169,15 +169,29 @@ describe('diagramAgentAdapter - Pure Functions', () => {
     expect(currentState.canvasContent).toBe('Second');
   });
 
-  it('should not affect messages when canvas updates', () => {
-    // Test: Canvas updates don't modify the message list
+  it('should add system message when canvas updates', () => {
+    // Test: Canvas updates add a system message to show the update in chat
     let currentState = state;
 
     currentState = handleAgentEvent(currentState, { type: 'start' });
     currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'A -> B' });
 
-    expect(currentState.messages).toHaveLength(1);
+    expect(currentState.messages).toHaveLength(2);
     expect(currentState.messages[0].role).toBe('assistant');
+    expect(currentState.messages[1].role).toBe('system');
+    expect((currentState.messages[1].parts[0] as any).text).toContain('Canvas updated');
+  });
+
+  it('should add separate system message for each canvas update', () => {
+    // Test: Multiple canvas updates create multiple system messages
+    let currentState = state;
+
+    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'First' });
+    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'Second' });
+
+    expect(currentState.messages).toHaveLength(2);
+    expect(currentState.messages[0].role).toBe('system');
+    expect(currentState.messages[1].role).toBe('system');
   });
 
   // ===== 6. EVENT HANDLING: complete =====
@@ -471,9 +485,11 @@ describe('diagramAgentAdapter - Pure Functions', () => {
     currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'A -> B' });
     currentState = handleAgentEvent(currentState, { type: 'complete' });
 
-    expect(currentState.messages).toHaveLength(2);
+    expect(currentState.messages).toHaveLength(3);
     expect((currentState.messages[0].parts[0] as any).text).toBe('Create diagram');
     expect((currentState.messages[1].parts[0] as any).text).toBe('Creating diagram');
+    expect(currentState.messages[2].role).toBe('system');
+    expect((currentState.messages[2].parts[0] as any).text).toContain('Canvas updated');
     expect(currentState.canvasContent).toBe('A -> B');
     expect(currentState.status).toBe('ready');
   });

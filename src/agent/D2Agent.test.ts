@@ -64,10 +64,19 @@ describe('D2Agent', () => {
       return mockResult as any;
     });
 
+    // Mock render function for testing
+    const mockRenderFunction = vi.fn(async (d2Content: string) => {
+      return {
+        svg: '<svg>mock</svg>',
+        png: 'data:image/png;base64,mockdata',
+      };
+    });
+
     agent = new D2Agent(
       {
         apiKey: 'test-api-key',
         model: 'gpt-4o',
+        renderFunction: mockRenderFunction,
       },
       eventCallback
     );
@@ -192,110 +201,224 @@ describe('D2Agent', () => {
     });
   });
 
-  describe('image feedback', () => {
-    it('should store rendered image when setRenderedImage is called', () => {
-      const testImageData = 'data:image/png;base64,iVBORw0KGgoAAAANS';
+  describe('rendering and tool execution', () => {
+    let mockRenderFunction: ReturnType<typeof vi.fn>;
+    let toolConfig: any;
 
-      agent.setRenderedImage(testImageData);
+    beforeEach(async () => {
+      // Capture the tool configuration when tool() is called
+      const { tool } = await import('@openai/agents');
+      vi.mocked(tool).mockImplementation((config) => {
+        toolConfig = config;
+        return config;
+      });
 
-      // Image is stored internally (we verify this by checking it's used in next message)
-      expect(agent).toBeDefined(); // Just verify agent exists
+      // Reset mocks
+      capturedEvents = [];
+      mockRenderFunction = vi.fn(async (d2Content: string) => {
+        return {
+          svg: '<svg>mock</svg>',
+          png: 'data:image/png;base64,mockdata',
+        };
+      });
+
+      agent = new D2Agent(
+        {
+          apiKey: 'test-api-key',
+          model: 'gpt-4o',
+          renderFunction: mockRenderFunction,
+        },
+        eventCallback
+      );
     });
 
-    it('should send text-only message when no image is set', async () => {
-      const { user } = await import('@openai/agents');
-      const mockUser = vi.mocked(user);
+    it('should set state to rendering when tool executes', async () => {
+      // Mock runAgent to simulate tool execution
+      const { run: runAgent } = await import('@openai/agents');
+      vi.mocked(runAgent).mockImplementation(async () => {
+        // Before tool execution
+        expect(agent.getState().status).toBe('thinking');
 
-      await agent.sendMessage('Create a diagram');
+        // Simulate tool execution by calling the execute function
+        const d2Content = 'A -> B';
+        await toolConfig.execute({ content: d2Content });
 
-      // Verify user() was called with just text
-      expect(mockUser).toHaveBeenCalled();
-      const lastCall = mockUser.mock.calls[mockUser.mock.calls.length - 1];
-      const content = lastCall[0];
+        // During/after tool execution
+        const state = agent.getState();
+        expect(state.status).toBe('rendering');
 
-      // Should be an array with only text
-      expect(Array.isArray(content)).toBe(true);
-      expect(content).toHaveLength(1);
-      expect(content[0]).toEqual({
-        type: 'input_text',
-        text: 'Create a diagram'
+        return {
+          output: [],
+          completed: Promise.resolve(),
+          [Symbol.asyncIterator]: async function* () {},
+        } as any;
+      });
+
+      await agent.sendMessage('Create diagram');
+    });
+
+    it('should update canvas content when tool executes', async () => {
+      const { run: runAgent } = await import('@openai/agents');
+      const d2Content = 'A -> B -> C';
+
+      vi.mocked(runAgent).mockImplementation(async () => {
+        // Execute the tool
+        await toolConfig.execute({ content: d2Content });
+
+        return {
+          output: [],
+          completed: Promise.resolve(),
+          [Symbol.asyncIterator]: async function* () {},
+        } as any;
+      });
+
+      await agent.sendMessage('Create diagram');
+
+      // Canvas should be updated
+      expect(agent.getCanvasContent()).toBe(d2Content);
+    });
+
+    it('should add canvas_update message to conversation history', async () => {
+      const { run: runAgent } = await import('@openai/agents');
+      const d2Content = 'X -> Y';
+
+      vi.mocked(runAgent).mockImplementation(async () => {
+        await toolConfig.execute({ content: d2Content });
+
+        return {
+          output: [],
+          completed: Promise.resolve(),
+          [Symbol.asyncIterator]: async function* () {},
+        } as any;
+      });
+
+      await agent.sendMessage('Create diagram');
+
+      const history = agent.getConversationHistory();
+      const canvasUpdates = history.filter(msg => msg.role === 'canvas_update');
+
+      expect(canvasUpdates).toHaveLength(1);
+      expect(canvasUpdates[0].content).toBe(d2Content);
+      expect(canvasUpdates[0].timestamp).toBeInstanceOf(Date);
+    });
+
+    it('should call render function with correct D2 content', async () => {
+      const { run: runAgent } = await import('@openai/agents');
+      const d2Content = 'server -> database';
+
+      vi.mocked(runAgent).mockImplementation(async () => {
+        await toolConfig.execute({ content: d2Content });
+
+        return {
+          output: [],
+          completed: Promise.resolve(),
+          [Symbol.asyncIterator]: async function* () {},
+        } as any;
+      });
+
+      await agent.sendMessage('Create diagram');
+
+      expect(mockRenderFunction).toHaveBeenCalledWith(d2Content);
+      expect(mockRenderFunction).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return image when rendering succeeds', async () => {
+      const { run: runAgent } = await import('@openai/agents');
+      const d2Content = 'A -> B';
+
+      let toolResult: any;
+      vi.mocked(runAgent).mockImplementation(async () => {
+        toolResult = await toolConfig.execute({ content: d2Content });
+
+        return {
+          output: [],
+          completed: Promise.resolve(),
+          [Symbol.asyncIterator]: async function* () {},
+        } as any;
+      });
+
+      await agent.sendMessage('Create diagram');
+
+      // Tool should return ToolOutputImage
+      expect(toolResult).toBeDefined();
+      expect(toolResult.type).toBe('image');
+      expect(toolResult.mediaType).toBe('image/png');
+      expect(toolResult.data).toBe('mockdata'); // Without data URL prefix
+    });
+
+    it('should return error text when rendering fails', async () => {
+      // Configure render function to return error
+      mockRenderFunction.mockResolvedValueOnce({
+        error: 'Invalid D2 syntax: unexpected token',
+      });
+
+      const { run: runAgent } = await import('@openai/agents');
+      const d2Content = 'invalid syntax {{}}';
+
+      let toolResult: any;
+      vi.mocked(runAgent).mockImplementation(async () => {
+        toolResult = await toolConfig.execute({ content: d2Content });
+
+        return {
+          output: [],
+          completed: Promise.resolve(),
+          [Symbol.asyncIterator]: async function* () {},
+        } as any;
+      });
+
+      await agent.sendMessage('Create diagram');
+
+      // Tool should return error as text string
+      expect(typeof toolResult).toBe('string');
+      expect(toolResult).toContain('rendering failed');
+      expect(toolResult).toContain('Invalid D2 syntax');
+    });
+
+    it('should emit canvas_update event when tool executes', async () => {
+      const { run: runAgent } = await import('@openai/agents');
+      const d2Content = 'user -> system';
+
+      vi.mocked(runAgent).mockImplementation(async () => {
+        await toolConfig.execute({ content: d2Content });
+
+        return {
+          output: [],
+          completed: Promise.resolve(),
+          [Symbol.asyncIterator]: async function* () {},
+        } as any;
+      });
+
+      await agent.sendMessage('Create diagram');
+
+      const canvasUpdateEvents = capturedEvents.filter(e => e.type === 'canvas_update');
+      expect(canvasUpdateEvents).toHaveLength(1);
+      expect(canvasUpdateEvents[0]).toEqual({
+        type: 'canvas_update',
+        content: d2Content,
       });
     });
 
-    it('should send multipart message with image when image is set', async () => {
-      const { user } = await import('@openai/agents');
-      const mockUser = vi.mocked(user);
+    it('should return to idle state after tool completion', async () => {
+      const { run: runAgent } = await import('@openai/agents');
+      const d2Content = 'A -> B';
 
-      const testImageData = 'data:image/png;base64,iVBORw0KGgoAAAANS';
-      agent.setRenderedImage(testImageData);
+      vi.mocked(runAgent).mockImplementation(async () => {
+        await toolConfig.execute({ content: d2Content });
 
-      await agent.sendMessage('How does this look?');
+        // State should be rendering during tool execution
+        expect(agent.getState().status).toBe('rendering');
 
-      // Verify user() was called with multipart content
-      expect(mockUser).toHaveBeenCalled();
-      const lastCall = mockUser.mock.calls[mockUser.mock.calls.length - 1];
-      const content = lastCall[0];
-
-      // Should be an array with text and image
-      expect(Array.isArray(content)).toBe(true);
-      expect(content).toHaveLength(2);
-
-      expect(content[0]).toEqual({
-        type: 'input_text',
-        text: 'How does this look?'
+        return {
+          output: [],
+          completed: Promise.resolve(),
+          [Symbol.asyncIterator]: async function* () {},
+        } as any;
       });
 
-      expect(content[1]).toEqual({
-        type: 'input_image',
-        image: testImageData
-      });
-    });
+      await agent.sendMessage('Create diagram');
 
-    it('should include image in every message after setRenderedImage', async () => {
-      const { user } = await import('@openai/agents');
-      const mockUser = vi.mocked(user);
-
-      const testImageData = 'data:image/png;base64,iVBORw0KGgoAAAANS';
-      agent.setRenderedImage(testImageData);
-
-      // Send multiple messages
-      await agent.sendMessage('First message');
-      await agent.sendMessage('Second message');
-
-      // Check both messages included the image
-      const calls = mockUser.mock.calls;
-      const lastTwoCalls = calls.slice(-2);
-
-      lastTwoCalls.forEach((call, index) => {
-        const content = call[0];
-        expect(Array.isArray(content)).toBe(true);
-        expect(content).toHaveLength(2);
-        expect(content[1].type).toBe('input_image');
-        expect(content[1].image).toBe(testImageData);
-      });
-    });
-
-    it('should update to new image when setRenderedImage is called again', async () => {
-      const { user } = await import('@openai/agents');
-      const mockUser = vi.mocked(user);
-
-      const firstImageData = 'data:image/png;base64,FIRST';
-      const secondImageData = 'data:image/png;base64,SECOND';
-
-      agent.setRenderedImage(firstImageData);
-      await agent.sendMessage('First message');
-
-      agent.setRenderedImage(secondImageData);
-      await agent.sendMessage('Second message');
-
-      const calls = mockUser.mock.calls;
-      const lastTwoCalls = calls.slice(-2);
-
-      // First message should have first image
-      expect(lastTwoCalls[0][0][1].image).toBe(firstImageData);
-
-      // Second message should have second image
-      expect(lastTwoCalls[1][0][1].image).toBe(secondImageData);
+      // After message completion, state should be idle
+      expect(agent.getState().status).toBe('idle');
     });
   });
 });

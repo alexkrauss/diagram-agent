@@ -98,14 +98,23 @@ export function handleAgentEvent(
       };
     }
 
-    case 'canvas_update':
+    case 'canvas_update': {
       // Agent updates the diagram: Replace the canvas content entirely with new D2 code.
       // This happens when the agent calls the replace_canvas tool. The canvas content
-      // is displayed separately from the chat messages.
+      // is displayed separately from the chat messages, but we also add a system message
+      // to the conversation history to show that the canvas was updated.
+      const canvasUpdateMsg: Message = {
+        id: generateMessageId(),
+        role: 'system',
+        parts: [{ type: 'text', text: '✓ Canvas updated' }],
+      };
+
       return {
         ...state,
         canvasContent: event.content,
+        messages: [...state.messages, canvasUpdateMsg],
       };
+    }
 
     case 'complete':
       // Agent finished successfully: Reset status to 'ready' (hides loading indicators)
