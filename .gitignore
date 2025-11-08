@@ -34,3 +34,4 @@ coverage/
 .playwright-mcp/
 
 tmp/
+eval-report.html

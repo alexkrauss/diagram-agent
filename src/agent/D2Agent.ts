@@ -139,7 +139,6 @@ export class D2Agent implements DiagramAgent {
 
       // Add all new output items (assistant responses, tool calls, etc.) to internal history
       // Use `output` instead of `newItems` as it contains AgentInputItem types
-      console.log(result.output);
       this.internalHistory.push(...result.output);
 
       this.currentState = { status: "idle" };

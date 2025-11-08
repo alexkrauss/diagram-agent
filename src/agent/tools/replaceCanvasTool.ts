@@ -15,8 +15,6 @@ export function createReplaceCanvasTool(
       content: z.string().describe('The complete D2 diagram DSL content to replace the canvas with'),
     }),
     execute: async (input) => {
-      console.log('[replace_canvas] Tool called with input:', input);
-
       // Update the canvas state
       updateCanvas(input.content);
 
@@ -28,7 +26,6 @@ export function createReplaceCanvasTool(
       // If rendering failed, return error as text
       if (renderResult.error) {
         result = `Canvas updated, but rendering failed: ${renderResult.error}`;
-        console.log('[replace_canvas] Tool result:', result);
         return result;
       }
 
@@ -44,13 +41,11 @@ export function createReplaceCanvasTool(
             mediaType: 'image/png'
           }
         };
-        console.log('[replace_canvas] Tool result: Image rendered successfully (PNG data length:', base64Data.length, 'characters)');
         return result;
       }
 
       // Fallback if no PNG or error
       result = 'Canvas replaced successfully';
-      console.log('[replace_canvas] Tool result:', result);
       return result;
     },
   });

@@ -54,9 +54,10 @@ interface TestSuiteResults {
 
 export default class EvalReporter implements Reporter {
   private allResults: Map<string, TestFileResults> = new Map();
+  private ctx?: Vitest;
 
-  onInit(_ctx: Vitest) {
-    // Store context for future use if needed
+  onInit(ctx: Vitest) {
+    this.ctx = ctx;
   }
 
   onTestCaseResult(test: TestCase) {
@@ -114,8 +115,11 @@ export default class EvalReporter implements Reporter {
       // Generate HTML
       const html = await this.generateHtml(suiteResults);
 
-      // Write to file
-      const outputPath = path.join(process.cwd(), 'eval-report.html');
+      // Write to file - use Vitest's root config
+      const projectRoot = this.ctx?.config.root || process.cwd();
+      const distDir = path.join(projectRoot, 'dist');
+      await fs.mkdir(distDir, { recursive: true });
+      const outputPath = path.join(distDir, 'eval-report.html');
       await fs.writeFile(outputPath, html);
 
       console.log(`\n✓ HTML report generated: ${outputPath}\n`);

@@ -12,6 +12,8 @@ export default defineConfig(({ mode }) => {
       include: ["**/*.eval.ts"],
       environment: "node",
       globals: true,
+      // Run tests in main thread to share memory with reporter
+      threads: false,
       // Increase timeout for LLM agent tests
       testTimeout: 30000, // 30 seconds
       env: {
