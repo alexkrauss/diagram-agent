@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/docs/v1/workflows/agents-and-tools",
+      "destination": "/docs/v1/workflows/overview",
+      "permanent": true
+    }
+  ]
+}
