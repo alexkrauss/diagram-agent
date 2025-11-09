@@ -125,6 +125,14 @@ export class D2Agent implements DiagramAgent {
         }
       }
 
+      // Emit streaming complete event with aggregated content
+      if (currentAssistantMessage.trim()) {
+        this.emit({
+          type: "model_response_complete",
+          content: currentAssistantMessage,
+        });
+      }
+
       // Save assistant message if there was any text content
       if (currentAssistantMessage.trim()) {
         this.conversationMessages.push({

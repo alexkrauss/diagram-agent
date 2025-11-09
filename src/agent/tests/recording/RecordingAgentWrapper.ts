@@ -84,12 +84,16 @@ export function createRecordingCallback(recorder: EventRecorder): (event: AgentE
         break;
 
       case 'model_response':
-        // Record streaming chunks as assistant messages
-        // Note: These come in chunks, we'll aggregate in HTML rendering
+        // Don't record individual streaming chunks
+        // Wait for model_response_complete instead
+        break;
+
+      case 'model_response_complete':
+        // Record the complete aggregated response as a single assistant message
         recorder.record({
           type: 'assistant_message',
           time,
-          content: event.chunk,
+          content: event.content,
         });
         break;
 

@@ -98,6 +98,13 @@ export interface ModelResponseEvent {
   chunk: string;
 }
 
+/** Event fired when model response streaming is complete. */
+export interface ModelResponseCompleteEvent {
+  type: "model_response_complete";
+  /** The complete aggregated text response from the model. */
+  content: string;
+}
+
 /** Event fired just before a tool is executed. */
 export interface ToolStartEvent {
   type: "tool_start";
@@ -144,6 +151,7 @@ export type AgentEvent =
   | StartEvent
   | LogEvent
   | ModelResponseEvent
+  | ModelResponseCompleteEvent
   | ToolStartEvent
   | ToolEndEvent
   | CanvasUpdateEvent
