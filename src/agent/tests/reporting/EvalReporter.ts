@@ -405,6 +405,7 @@ export default class EvalReporter implements Reporter {
         <div class="event ${event.type}">
           <div class="event-header">${typeHtml} - ${e?.passed ? 'PASS' : 'FAIL'}${timeHtml}</div>
           <div class="event-assertion ${assertionClass}">
+            ${e?.description ? `<strong>Description:</strong> ${this.escapeHtml(e.description)}<br>` : ''}
             <strong>Matcher:</strong> ${this.escapeHtml(e?.matcher || 'unknown')}<br>
             <strong>Expected:</strong> <code>${this.escapeHtml(JSON.stringify(e?.expected))}</code><br>
             <strong>Actual:</strong> <code>${this.escapeHtml(JSON.stringify(e?.actual))}</code>

@@ -4,7 +4,7 @@ import { loadEnv } from "vite";
 export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
   // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
-  const env = loadEnv(mode, process.cwd(), '');
+  const env = loadEnv(mode, process.cwd(), "");
 
   return {
     test: {
@@ -22,8 +22,8 @@ export default defineConfig(({ mode }) => {
       },
       // Use custom reporter to generate HTML report
       reporters: [
-        'default',  // Console output
-        './src/agent/tests/reporting/EvalReporter.ts'  // HTML report generation
+        "default", // Console output
+        "./src/agent/tests/reporting/EvalReporter.ts", // HTML report generation
       ],
     },
   };

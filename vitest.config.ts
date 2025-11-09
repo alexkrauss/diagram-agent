@@ -9,6 +9,8 @@ export default defineConfig(({ mode }) => {
       globals: true,
       // Increase timeout for LLM agent tests
       testTimeout: 30000, // 30 seconds
+      // Run tests sequentially (one at a time) instead of in parallel
+      threads: false,
     },
   };
 });

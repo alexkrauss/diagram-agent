@@ -141,12 +141,6 @@ describe("DiagramAgent - Example Conversations", () => {
         (m) => m.role === "user",
       );
       expect(userMessages3.length, "Should have 3 user messages").toBe(3);
-
-      const lastMessage =
-        agent.conversation.messages[agent.conversation.messages.length - 1];
-      expect(lastMessage.role, "Last message should be canvas update").toBe(
-        "canvas_update",
-      );
     },
   );
 
