@@ -4,8 +4,10 @@ import type { RenderFunction } from '../DiagramAgent';
 
 type ToolOutputImage = z.infer<typeof protocol.ToolOutputImage>;
 
+let canvasUpdateCounter = 0;
+
 export function createReplaceCanvasTool(
-  updateCanvas: (content: string) => void,
+  updateCanvas: (content: string, canvasUpdateId: string) => void,
   renderFunction: RenderFunction
 ) {
   return tool({
@@ -15,11 +17,14 @@ export function createReplaceCanvasTool(
       content: z.string().describe('The complete D2 diagram DSL content to replace the canvas with'),
     }),
     execute: async (input) => {
+      // Generate unique ID for this canvas update
+      const canvasUpdateId = `canvas-${canvasUpdateCounter++}`;
+
       // Update the canvas state
-      updateCanvas(input.content);
+      updateCanvas(input.content, canvasUpdateId);
 
       // Render the D2 content to get visual feedback
-      const renderResult = await renderFunction(input.content);
+      const renderResult = await renderFunction(input.content, canvasUpdateId);
 
       let result: string | ToolOutputImage;
 

@@ -35,3 +35,6 @@ coverage/
 
 tmp/
 eval-report.html
+
+# Evaluation results
+eval-results/

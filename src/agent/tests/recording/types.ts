@@ -51,6 +51,7 @@ export interface ToolResultEvent extends BaseEvent {
 export interface CanvasUpdateEvent extends BaseEvent {
   type: 'canvas_update';
   d2Content: string;
+  canvasUpdateId: string;
 }
 
 /**

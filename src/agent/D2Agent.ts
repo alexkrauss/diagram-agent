@@ -38,7 +38,7 @@ export class D2Agent implements DiagramAgent {
     setDefaultOpenAIClient(client as any);
 
     // Create tool with canvas state management and rendering
-    const replaceCanvasTool = createReplaceCanvasTool((content) => {
+    const replaceCanvasTool = createReplaceCanvasTool((content, canvasUpdateId) => {
       // Set state to rendering - tool execution is happening
       this.currentState = { status: "rendering" };
 
@@ -54,6 +54,7 @@ export class D2Agent implements DiagramAgent {
       this.emit({
         type: "canvas_update",
         content: this.canvas,
+        canvasUpdateId: canvasUpdateId,
       });
     }, config.renderFunction);
 

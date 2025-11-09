@@ -152,7 +152,8 @@ describe('diagramAgentAdapter - Pure Functions', () => {
     // Test: Canvas content is updated with the new diagram content
     const event: AgentEvent = {
       type: 'canvas_update',
-      content: 'A -> B: Hello'
+      content: 'A -> B: Hello',
+      canvasUpdateId: 'test-1'
     };
     const newState = handleAgentEvent(state, event);
 
@@ -163,8 +164,8 @@ describe('diagramAgentAdapter - Pure Functions', () => {
     // Test: New canvas content replaces the old content (not appends)
     let currentState = state;
 
-    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'First' });
-    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'Second' });
+    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'First', canvasUpdateId: 'test-1' });
+    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'Second', canvasUpdateId: 'test-2' });
 
     expect(currentState.canvasContent).toBe('Second');
   });
@@ -174,7 +175,7 @@ describe('diagramAgentAdapter - Pure Functions', () => {
     let currentState = state;
 
     currentState = handleAgentEvent(currentState, { type: 'start' });
-    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'A -> B' });
+    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'A -> B', canvasUpdateId: 'test-1' });
 
     expect(currentState.messages).toHaveLength(2);
     expect(currentState.messages[0].role).toBe('assistant');
@@ -186,8 +187,8 @@ describe('diagramAgentAdapter - Pure Functions', () => {
     // Test: Multiple canvas updates create multiple system messages
     let currentState = state;
 
-    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'First' });
-    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'Second' });
+    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'First', canvasUpdateId: 'test-1' });
+    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'Second', canvasUpdateId: 'test-2' });
 
     expect(currentState.messages).toHaveLength(2);
     expect(currentState.messages[0].role).toBe('system');
@@ -409,7 +410,7 @@ describe('diagramAgentAdapter - Pure Functions', () => {
     // Test: clearChatState resets the diagram canvas
     let currentState = state;
 
-    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'A -> B' });
+    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'A -> B', canvasUpdateId: 'test-1' });
     currentState = clearChatState(currentState);
 
     expect(currentState.canvasContent).toBe('');
@@ -452,7 +453,7 @@ describe('diagramAgentAdapter - Pure Functions', () => {
     // Test: Only status changes, everything else remains
     let currentState = state;
 
-    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'A -> B' });
+    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'A -> B', canvasUpdateId: 'test-1' });
     currentState = addUserMessage(currentState, {
       id: 'user-1',
       role: 'user',
@@ -482,7 +483,7 @@ describe('diagramAgentAdapter - Pure Functions', () => {
     currentState = handleAgentEvent(currentState, { type: 'start' });
     currentState = handleAgentEvent(currentState, { type: 'model_response', chunk: 'Creating' });
     currentState = handleAgentEvent(currentState, { type: 'model_response', chunk: ' diagram' });
-    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'A -> B' });
+    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'A -> B', canvasUpdateId: 'test-1' });
     currentState = handleAgentEvent(currentState, { type: 'complete' });
 
     expect(currentState.messages).toHaveLength(3);
@@ -533,8 +534,8 @@ describe('diagramAgentAdapter - Pure Functions', () => {
     currentState = handleAgentEvent(currentState, { type: 'model_response', chunk: 'a' });
     currentState = handleAgentEvent(currentState, { type: 'model_response', chunk: 'b' });
     currentState = handleAgentEvent(currentState, { type: 'model_response', chunk: 'c' });
-    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'diagram1' });
-    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'diagram2' });
+    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'diagram1', canvasUpdateId: 'test-1' });
+    currentState = handleAgentEvent(currentState, { type: 'canvas_update', content: 'diagram2', canvasUpdateId: 'test-2' });
     currentState = handleAgentEvent(currentState, { type: 'complete' });
 
     expect((currentState.messages[0].parts[0] as any).text).toBe('abc');

@@ -120,6 +120,7 @@ export function createRecordingCallback(recorder: EventRecorder): (event: AgentE
           type: 'canvas_update',
           time,
           d2Content: event.content,
+          canvasUpdateId: event.canvasUpdateId,
         });
         break;
 

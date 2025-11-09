@@ -15,8 +15,11 @@ export interface RenderResult {
 /**
  * Function that renders D2 diagram content and returns the result.
  * This function is called by the agent's tools to provide visual feedback.
+ *
+ * @param d2Content - The D2 diagram code to render
+ * @param canvasUpdateId - Unique identifier for this canvas update, can be used by implementations to track render results
  */
-export type RenderFunction = (d2Content: string) => Promise<RenderResult>;
+export type RenderFunction = (d2Content: string, canvasUpdateId: string) => Promise<RenderResult>;
 
 /**
  * Represents the configuration required to initialize the DiagramAgent.
@@ -128,6 +131,8 @@ export interface CanvasUpdateEvent {
   type: "canvas_update";
   /** The new, complete D2 diagram content. */
   content: string;
+  /** Unique identifier for this canvas update, assigned by the agent. */
+  canvasUpdateId: string;
 }
 
 /** Event fired when an error occurs during agent execution. */

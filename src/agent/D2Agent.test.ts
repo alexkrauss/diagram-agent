@@ -327,7 +327,8 @@ describe('D2Agent', () => {
 
       await agent.sendMessage('Create diagram');
 
-      expect(mockRenderFunction).toHaveBeenCalledWith(d2Content);
+      // Render function is now called with (d2Content, canvasUpdateId)
+      expect(mockRenderFunction).toHaveBeenCalledWith(d2Content, expect.stringMatching(/^canvas-\d+$/));
       expect(mockRenderFunction).toHaveBeenCalledTimes(1);
     });
 
@@ -405,6 +406,7 @@ describe('D2Agent', () => {
       expect(canvasUpdateEvents[0]).toEqual({
         type: 'canvas_update',
         content: d2Content,
+        canvasUpdateId: expect.stringMatching(/^canvas-\d+$/),
       });
     });
 

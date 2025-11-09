@@ -13,19 +13,23 @@
 
 import { describe } from "vitest";
 import { conversation } from "./conversation-testing";
-import type { DiagramAgent, AgentEvent } from "../DiagramAgent";
+import type { DiagramAgent, AgentEvent, RenderFunction } from "../DiagramAgent";
 import { D2Agent } from "../D2Agent";
-import { D2RendererImpl, createImageConverter } from "../../render";
 
 /**
  * Create a test agent instance using the OpenAI API key from environment.
  * Requires OPENAI_API_KEY to be set in .env file or environment variables.
  *
- * Uses the REAL render pipeline (D2 → SVG → PNG) for authentic evaluations.
+ * The test harness provides the renderFunction, which includes file capturing
+ * for evaluation reports (SVG and PNG files are saved to eval-results/).
  *
  * @param callback - Event callback for recording agent events
+ * @param renderFunction - Render function provided by the test harness (includes file capturing)
  */
-function createTestAgent(callback: (event: AgentEvent) => void): DiagramAgent {
+function createTestAgent(
+  callback: (event: AgentEvent) => void,
+  renderFunction: RenderFunction
+): DiagramAgent {
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
@@ -35,30 +39,8 @@ function createTestAgent(callback: (event: AgentEvent) => void): DiagramAgent {
     );
   }
 
-  // Create real renderer and image converter (matches production pipeline)
-  const renderer = new D2RendererImpl();
-  const imageConverter = createImageConverter();
-
-  // Real render function that converts D2 → SVG → PNG
-  const renderFunction = async (d2Content: string) => {
-    try {
-      // Step 1: Render D2 to SVG
-      const renderResult = await renderer.render(d2Content);
-
-      if (renderResult.error) {
-        return { error: renderResult.error };
-      }
-
-      // Step 2: Convert SVG to PNG base64
-      const pngBase64 = await imageConverter.svgToPngBase64(renderResult.svg);
-      return { svg: renderResult.svg, png: pngBase64 };
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      return { error: `Failed to render: ${errorMessage}` };
-    }
-  };
-
+  // Use the render function provided by the test harness
+  // (which captures SVG/PNG files for evaluation reports)
   return new D2Agent({ apiKey, model: "gpt-4o", renderFunction }, callback);
 }
 

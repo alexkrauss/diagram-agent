@@ -12,16 +12,75 @@
  */
 
 import { it } from "vitest";
+import * as fs from "fs/promises";
+import * as path from "path";
 import type {
   DiagramAgent,
   ConversationMessage,
   AgentState,
   AgentEvent,
+  RenderFunction,
+  RenderResult,
 } from "../DiagramAgent";
 import { EventRecorder } from "./recording/EventRecorder";
 import { RecordingAgentWrapper, createRecordingCallback } from "./recording/RecordingAgentWrapper";
 import { createRecordingExpect, type ExpectFunction } from "./recording/RecordingExpect";
 import type { RecordedEvent } from "./recording/types";
+import { D2RendererImpl } from "../../render/D2Renderer";
+import { createImageConverter } from "../../render/ImageConverter";
+
+// =============================================================================
+// Internal Helpers
+// =============================================================================
+
+let testCounter = 0;
+
+/**
+ * Creates a render function that captures SVG/PNG and saves them to files
+ */
+async function createCapturingRenderFunction(
+  testIndex: number
+): Promise<RenderFunction> {
+  const renderer = new D2RendererImpl();
+  const imageConverter = createImageConverter();
+  const testDir = path.join(process.cwd(), "eval-results", `test-${testIndex}`);
+
+  // Ensure eval-results directory exists
+  await fs.mkdir(testDir, { recursive: true });
+
+  return async (d2Code: string, canvasUpdateId: string): Promise<RenderResult> => {
+    try {
+      // Render D2 → SVG
+      const renderResult = await renderer.render(d2Code);
+
+      if (!renderResult.svg) {
+        return renderResult;
+      }
+
+      // Save SVG file
+      const svgPath = path.join(testDir, `${canvasUpdateId}.svg`);
+      await fs.writeFile(svgPath, renderResult.svg);
+
+      // Convert SVG → PNG
+      const pngDataUrl = await imageConverter.svgToPngBase64(renderResult.svg);
+
+      // Save PNG file
+      const pngPath = path.join(testDir, `${canvasUpdateId}.png`);
+      const base64Data = pngDataUrl.replace(/^data:image\/png;base64,/, "");
+      const pngBuffer = Buffer.from(base64Data, "base64");
+      await fs.writeFile(pngPath, pngBuffer);
+
+      // Return the rendering result
+      return {
+        png: pngDataUrl,
+      };
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  };
+}
 
 // =============================================================================
 // Core API
@@ -35,14 +94,17 @@ import type { RecordedEvent } from "./recording/types";
  * updates are recorded for detailed HTML report generation.
  *
  * @param name - Descriptive name for the conversation test
- * @param agentFactory - Factory function that creates an agent with an event callback
+ * @param agentFactory - Factory function that creates an agent with an event callback and render function
  * @param fn - Test function receiving the wrapped agent and custom expect function
  *
  * @example
  * ```typescript
- * // Define agent factory that accepts callback
- * function createTestAgent(callback: (event: AgentEvent) => void): DiagramAgent {
- *   return new D2Agent({ apiKey: '...', model: 'gpt-4o' }, callback);
+ * // Define agent factory that accepts callback and renderFunction
+ * function createTestAgent(
+ *   callback: (event: AgentEvent) => void,
+ *   renderFunction: RenderFunction
+ * ): DiagramAgent {
+ *   return new D2Agent({ apiKey: '...', model: 'gpt-4o', renderFunction }, callback);
  * }
  *
  * // Use in test with custom expect for recording
@@ -54,11 +116,12 @@ import type { RecordedEvent } from "./recording/types";
  */
 export function conversation(
   name: string,
-  agentFactory: (callback: (event: AgentEvent) => void) => DiagramAgent,
+  agentFactory: (callback: (event: AgentEvent) => void, renderFunction: RenderFunction) => DiagramAgent,
   fn: (agent: AgentWrapper, expect: ExpectFunction) => Promise<void>
 ): void {
   it(name, async (testContext) => {
     const startTime = Date.now();
+    const testIndex = testCounter++;
 
     // Create event recorder for this test
     const recorder = new EventRecorder();
@@ -66,8 +129,11 @@ export function conversation(
     // Create recording callback for agent events
     const recordingCallback = createRecordingCallback(recorder);
 
-    // Create agent with recording callback
-    const agent = agentFactory(recordingCallback);
+    // Create capturing render function for this test
+    const capturingRenderFunction = await createCapturingRenderFunction(testIndex);
+
+    // Create agent with recording callback and capturing render function
+    const agent = agentFactory(recordingCallback, capturingRenderFunction);
 
     // Wrap agent to record interactions
     const wrapper = new RecordingAgentWrapper(agent, recorder);
