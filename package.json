@@ -6,9 +6,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "eval": "vitest --config vitest.eval.config.ts"
+    "eval": "vitest --config vitest.eval.config.ts",
+    "check": "npm run typecheck && npm run test"
   },
   "keywords": [],
   "author": "",

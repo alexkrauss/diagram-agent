@@ -6,9 +6,9 @@ This is a React-based web application that provides an interactive UI for an AI 
 
 ## Development Commands
 
+- **Typecheck and tests**: `npm run check` (Mandatory: always run this before declaring work as complete!)
 - **Start development server**: `npm run dev`
 - **Build for production**: `npm run build` (runs TypeScript compiler then Vite build)
-- **Preview production build**: `npm run preview`
 
 ## Architecture
 
@@ -34,6 +34,7 @@ This is a React-based web application that provides an interactive UI for an AI 
 ### Agent Loop Pattern
 
 The D2Agent implements a standard agentic loop:
+
 1. Initialize messages with system prompt and user request
 2. Call OpenAI API with available tools
 3. If response contains tool calls, execute them and continue loop
@@ -43,6 +44,7 @@ The D2Agent implements a standard agentic loop:
 ### Event System
 
 The agent emits events through a callback for UI updates:
+
 - `log`: General logging messages
 - `tool_call`: When executing a tool
 - `canvas_update`: When D2 diagram content changes
