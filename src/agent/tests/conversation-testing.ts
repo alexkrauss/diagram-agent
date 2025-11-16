@@ -23,8 +23,14 @@ import type {
   RenderResult,
 } from "../DiagramAgent";
 import { EventRecorder } from "./recording/EventRecorder";
-import { RecordingAgentWrapper, createRecordingCallback } from "./recording/RecordingAgentWrapper";
-import { createRecordingExpect, type ExpectFunction } from "./recording/RecordingExpect";
+import {
+  RecordingAgentWrapper,
+  createRecordingCallback,
+} from "./recording/RecordingAgentWrapper";
+import {
+  createRecordingExpect,
+  type ExpectFunction,
+} from "./recording/RecordingExpect";
 import type { RecordedEvent } from "./recording/types";
 import { D2RendererImpl } from "../../render/D2Renderer";
 import { createImageConverter } from "../../render/ImageConverter";
@@ -33,22 +39,27 @@ import { createImageConverter } from "../../render/ImageConverter";
 // Internal Helpers
 // =============================================================================
 
-let testCounter = 0;
+// Track test counters per file
+const testCountersByFile = new Map<string, number>();
 
 /**
  * Creates a render function that captures SVG/PNG and saves them to files
  */
 async function createCapturingRenderFunction(
-  testIndex: number
+  fileId: string,
+  testIndex: number,
 ): Promise<RenderFunction> {
   const renderer = new D2RendererImpl();
   const imageConverter = createImageConverter();
-  const testDir = path.join(process.cwd(), "eval-results", `test-${testIndex}`);
+  const testDir = path.join(process.cwd(), "eval-results", fileId, `test-${testIndex}`);
 
   // Ensure eval-results directory exists
   await fs.mkdir(testDir, { recursive: true });
 
-  return async (d2Code: string, canvasUpdateId: string): Promise<RenderResult> => {
+  return async (
+    d2Code: string,
+    canvasUpdateId: string,
+  ): Promise<RenderResult> => {
     try {
       // Render D2 → SVG
       const renderResult = await renderer.render(d2Code);
@@ -116,12 +127,24 @@ async function createCapturingRenderFunction(
  */
 export function conversation(
   name: string,
-  agentFactory: (callback: (event: AgentEvent) => void, renderFunction: RenderFunction) => DiagramAgent,
-  fn: (agent: AgentWrapper, expect: ExpectFunction) => Promise<void>
+  agentFactory: (
+    callback: (event: AgentEvent) => void,
+    renderFunction: RenderFunction,
+  ) => DiagramAgent,
+  fn: (agent: AgentWrapper, expect: ExpectFunction) => Promise<void>,
 ): void {
   it(name, async (testContext) => {
     const startTime = Date.now();
-    const testIndex = testCounter++;
+
+    // Extract file identifier from test file path
+    const filePath = testContext.task.file?.filepath || 'unknown';
+    const fileName = path.basename(filePath, path.extname(filePath));
+    const fileId = fileName.replace(/\.(eval|test|spec)$/, ''); // Remove .eval, .test, .spec suffixes
+
+    // Get or initialize counter for this file
+    const currentCount = testCountersByFile.get(fileId) || 0;
+    const testIndex = currentCount;
+    testCountersByFile.set(fileId, currentCount + 1);
 
     // Create event recorder for this test
     const recorder = new EventRecorder();
@@ -130,7 +153,8 @@ export function conversation(
     const recordingCallback = createRecordingCallback(recorder);
 
     // Create capturing render function for this test
-    const capturingRenderFunction = await createCapturingRenderFunction(testIndex);
+    const capturingRenderFunction =
+      await createCapturingRenderFunction(fileId, testIndex);
 
     // Create agent with recording callback and capturing render function
     const agent = agentFactory(recordingCallback, capturingRenderFunction);
@@ -151,6 +175,8 @@ export function conversation(
       // Store events in test metadata for reporter to access
       // Cast to allow writing custom metadata (documented Vitest feature)
       const meta = testContext.task.meta as any;
+      meta.fileId = fileId;
+      meta.testIndex = testIndex;
       meta.events = recorder.getEvents();
       meta.passed = summary.failedAssertions === 0;
       meta.summary = {
@@ -160,23 +186,23 @@ export function conversation(
 
       // If any assertions failed, throw error to mark test as failed
       if (summary.failedAssertions > 0) {
-        const failedAssertions = recorder.getEvents()
-          .filter(e => e.type === 'assertion' && !(e as any).passed);
+        const failedAssertions = recorder
+          .getEvents()
+          .filter((e) => e.type === "assertion" && !(e as any).passed);
 
         throw new Error(
           `${summary.failedAssertions} assertion(s) failed:\n` +
-          failedAssertions.map((a: any) =>
-            `  - ${a.description || a.matcher}: ${a.error}`
-          ).join('\n')
+            failedAssertions
+              .map((a: any) => `  - ${a.description || a.matcher}: ${a.error}`)
+              .join("\n"),
         );
       }
-
     } catch (error) {
       const duration = Date.now() - startTime;
 
       // Record error event
       recorder.record({
-        type: 'error',
+        type: "error",
         time: Date.now(),
         error: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
@@ -185,6 +211,8 @@ export function conversation(
       // Store events even on failure
       // Cast to allow writing custom metadata (documented Vitest feature)
       const meta = testContext.task.meta as any;
+      meta.fileId = fileId;
+      meta.testIndex = testIndex;
       meta.events = recorder.getEvents();
       meta.passed = false;
       meta.summary = {
@@ -321,6 +349,12 @@ export interface ConversationState {
  * Metadata stored in test.meta for reporter access
  */
 export interface TestMetadata {
+  /** File identifier (e.g., "02-basic-connections") used for organizing output */
+  fileId: string;
+
+  /** Test index within the file used for file paths during execution */
+  testIndex: number;
+
   /** All recorded events from the test execution */
   events: RecordedEvent[];
 

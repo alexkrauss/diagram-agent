@@ -11,7 +11,9 @@ import type { RecordedEvent, UserMessageEvent, AssistantMessageEvent, ToolCallEv
  * Data required to render a single test conversation
  */
 export interface TestConversationData {
-  /** Unique index for this test */
+  /** File identifier (e.g., "02-basic-connections") */
+  fileId: string;
+  /** Test index within the file */
   index: number;
   /** Full hierarchical name of the test (e.g., "Suite > Test Name") */
   name: string;
@@ -77,7 +79,7 @@ export function formatMs(ms: number): string {
 /**
  * Render a single event based on its type
  */
-export function renderEvent(event: RecordedEvent, testIndex: number): string {
+export function renderEvent(event: RecordedEvent, fileId: string, testIndex: number): string {
   const typeHtml = `<span class="event-type ${event.type}">${event.type.replace(/_/g, ' ')}</span>`;
   const timeHtml = `<span class="event-time">${formatMs(event.relativeTime || 0)} ms</span>`;
 
@@ -126,8 +128,8 @@ export function renderEvent(event: RecordedEvent, testIndex: number): string {
     const d2Content = e?.d2Content || '';
     const canvasUpdateId = e?.canvasUpdateId || 'unknown';
 
-    // Build file paths based on testIndex and canvasUpdateId
-    const pngPath = `./test-${testIndex}/${canvasUpdateId}.png`;
+    // Build file paths based on fileId, testIndex, and canvasUpdateId
+    const pngPath = `./${fileId}/test-${testIndex}/${canvasUpdateId}.png`;
 
     return `
       <div class="event ${event.type}">
@@ -187,7 +189,7 @@ export function renderEvent(event: RecordedEvent, testIndex: number): string {
  * Render all events for a test into HTML
  */
 export function renderTestEvents(test: TestConversationData): string {
-  return test.events.map((event) => renderEvent(event, test.index)).join('');
+  return test.events.map((event) => renderEvent(event, test.fileId, test.index)).join('');
 }
 
 /**

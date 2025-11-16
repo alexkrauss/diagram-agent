@@ -16,18 +16,24 @@
  *     └── canvas-0.png
  */
 
-import type { Reporter, Vitest } from 'vitest';
-import type { TestCase, TestSuite } from 'vitest/node';
-import * as fs from 'fs/promises';
-import * as path from 'path';
-import type { RecordedEvent } from '../recording/types';
-import type { TestMetadata } from '../conversation-testing';
-import { generateHtml, type ReportData, type TestConversationData } from './EvalReporter.rendering';
+import type { Reporter, Vitest } from "vitest";
+import type { TestCase, TestSuite } from "vitest/node";
+import * as fs from "fs/promises";
+import * as path from "path";
+import type { RecordedEvent } from "../recording/types";
+import type { TestMetadata } from "../conversation-testing";
+import {
+  generateHtml,
+  type ReportData,
+  type TestConversationData,
+} from "./EvalReporter.rendering";
 
 /**
  * Collected result for a single test
  */
 interface TestResult {
+  fileId: string;
+  testIndex: number;
   name: string;
   fullName: string;
   hierarchy: string[];
@@ -51,7 +57,6 @@ interface TestFileResults {
   filepath: string;
   tests: TestResult[];
 }
-
 
 export default class EvalReporter implements Reporter {
   private allResults: Map<string, TestFileResults> = new Map();
@@ -78,16 +83,18 @@ export default class EvalReporter implements Reporter {
     const hierarchy = this.getTestHierarchy(test);
 
     // Get or create file results
-    const filepath = test.module?.moduleId || 'unknown';
+    const filepath = test.module?.moduleId || "unknown";
     const fileResults: TestFileResults = this.allResults.get(filepath) || {
       filepath,
-      tests: []
+      tests: [],
     };
 
     // Add test result
     fileResults.tests.push({
+      fileId: metadata.fileId,
+      testIndex: metadata.testIndex,
       name: test.name,
-      fullName: hierarchy.join(' > '),
+      fullName: hierarchy.join(" > "),
       hierarchy,
       passed: metadata.passed,
       duration,
@@ -107,19 +114,19 @@ export default class EvalReporter implements Reporter {
 
       // Use Vitest's root config
       const projectRoot = this.ctx?.config.root || process.cwd();
-      const evalResultsDir = path.join(projectRoot, 'eval-results');
+      const evalResultsDir = path.join(projectRoot, "eval-results");
       await fs.mkdir(evalResultsDir, { recursive: true });
 
       const summary = this.calculateSummary(files);
 
       // Convert to rendering format
       const conversations: TestConversationData[] = [];
-      let testIndex = 0;
 
       for (const file of files) {
         for (const test of file.tests) {
           conversations.push({
-            index: testIndex,
+            fileId: test.fileId,
+            index: test.testIndex,
             name: test.fullName,
             passed: test.passed,
             duration: test.duration,
@@ -127,7 +134,6 @@ export default class EvalReporter implements Reporter {
             error: test.error,
             events: test.events,
           });
-          testIndex++;
         }
       }
 
@@ -140,12 +146,12 @@ export default class EvalReporter implements Reporter {
       const html = generateHtml(reportData);
 
       // Write to file
-      const outputPath = path.join(evalResultsDir, 'eval-report.html');
+      const outputPath = path.join(evalResultsDir, "eval-report.html");
       await fs.writeFile(outputPath, html);
 
       console.log(`\n✓ HTML report generated: ${outputPath}\n`);
     } catch (error) {
-      console.error('\n✗ Failed to generate HTML report:', error);
+      console.error("\n✗ Failed to generate HTML report:", error);
     }
   }
 
@@ -154,13 +160,14 @@ export default class EvalReporter implements Reporter {
    */
   private getTestHierarchy(test: TestCase): string[] {
     const names: string[] = [];
-    let current: TestSuite | undefined = test.parent.type === 'suite' ? test.parent : undefined;
+    let current: TestSuite | undefined =
+      test.parent.type === "suite" ? test.parent : undefined;
 
     while (current) {
       if (current.name) {
         names.unshift(current.name);
       }
-      current = current.parent.type === 'suite' ? current.parent : undefined;
+      current = current.parent.type === "suite" ? current.parent : undefined;
     }
 
     names.push(test.name);
@@ -204,5 +211,4 @@ export default class EvalReporter implements Reporter {
       failedAssertions,
     };
   }
-
 }
