@@ -9,6 +9,7 @@ This is a React-based web application that provides an interactive UI for an AI 
 - **Typecheck and tests**: `npm run check` (Mandatory: always run this before declaring work as complete!)
 - **Start development server**: `npm run dev`
 - **Build for production**: `npm run build` (runs TypeScript compiler then Vite build)
+- **Run the benchmark**: `npm run eval` (needs openai key in environment variable)
 
 ## Architecture
 

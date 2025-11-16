@@ -410,6 +410,96 @@ describe('D2Agent', () => {
       });
     });
 
+    it('should emit render_complete event after rendering finishes', async () => {
+      const { run: runAgent } = await import('@openai/agents');
+      const d2Content = 'A -> B';
+
+      vi.mocked(runAgent).mockImplementation(async () => {
+        await toolConfig.execute({ content: d2Content });
+
+        return {
+          output: [],
+          completed: Promise.resolve(),
+          [Symbol.asyncIterator]: async function* () {},
+        } as any;
+      });
+
+      await agent.sendMessage('Create diagram');
+
+      // Find render_complete event
+      const renderCompleteEvents = capturedEvents.filter(e => e.type === 'render_complete');
+      expect(renderCompleteEvents).toHaveLength(1);
+
+      const event = renderCompleteEvents[0];
+      expect(event.type).toBe('render_complete');
+      expect(event).toHaveProperty('canvasUpdateId');
+      expect(event.canvasUpdateId).toMatch(/^canvas-\d+$/);
+      expect(event).toHaveProperty('success', true);
+      expect(event).not.toHaveProperty('error');
+    });
+
+    it('should emit render_complete event with error when rendering fails', async () => {
+      // Configure render function to return error
+      mockRenderFunction.mockResolvedValueOnce({
+        error: 'Invalid D2 syntax: unexpected token',
+      });
+
+      const { run: runAgent } = await import('@openai/agents');
+      const d2Content = 'invalid syntax {{}}';
+
+      vi.mocked(runAgent).mockImplementation(async () => {
+        await toolConfig.execute({ content: d2Content });
+
+        return {
+          output: [],
+          completed: Promise.resolve(),
+          [Symbol.asyncIterator]: async function* () {},
+        } as any;
+      });
+
+      await agent.sendMessage('Create diagram');
+
+      const renderCompleteEvents = capturedEvents.filter(e => e.type === 'render_complete');
+      expect(renderCompleteEvents).toHaveLength(1);
+
+      const event = renderCompleteEvents[0];
+      expect(event.type).toBe('render_complete');
+      expect(event).toHaveProperty('canvasUpdateId');
+      expect(event.canvasUpdateId).toMatch(/^canvas-\d+$/);
+      expect(event).toHaveProperty('success', false);
+      expect(event).toHaveProperty('error');
+      expect(event.error).toContain('Invalid D2 syntax');
+    });
+
+    it('should emit canvas_update before render_complete', async () => {
+      const { run: runAgent } = await import('@openai/agents');
+      const d2Content = 'A -> B';
+
+      vi.mocked(runAgent).mockImplementation(async () => {
+        await toolConfig.execute({ content: d2Content });
+
+        return {
+          output: [],
+          completed: Promise.resolve(),
+          [Symbol.asyncIterator]: async function* () {},
+        } as any;
+      });
+
+      await agent.sendMessage('Create diagram');
+
+      // Find indices of canvas_update and render_complete events
+      const canvasUpdateIndex = capturedEvents.findIndex(e => e.type === 'canvas_update');
+      const renderCompleteIndex = capturedEvents.findIndex(e => e.type === 'render_complete');
+
+      expect(canvasUpdateIndex).toBeGreaterThanOrEqual(0);
+      expect(renderCompleteIndex).toBeGreaterThan(canvasUpdateIndex);
+
+      // Verify they have matching canvasUpdateIds
+      const canvasUpdateEvent = capturedEvents[canvasUpdateIndex] as any;
+      const renderCompleteEvent = capturedEvents[renderCompleteIndex] as any;
+      expect(canvasUpdateEvent.canvasUpdateId).toBe(renderCompleteEvent.canvasUpdateId);
+    });
+
     it('should return to idle state after tool completion', async () => {
       const { run: runAgent } = await import('@openai/agents');
       const d2Content = 'A -> B';

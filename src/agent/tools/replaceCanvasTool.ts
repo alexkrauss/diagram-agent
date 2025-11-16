@@ -1,6 +1,6 @@
 import { tool, protocol } from '@openai/agents';
 import { z } from 'zod';
-import type { RenderFunction } from '../DiagramAgent';
+import type { RenderFunction, AgentEvent } from '../DiagramAgent';
 
 type ToolOutputImage = z.infer<typeof protocol.ToolOutputImage>;
 
@@ -8,7 +8,8 @@ let canvasUpdateCounter = 0;
 
 export function createReplaceCanvasTool(
   updateCanvas: (content: string, canvasUpdateId: string) => void,
-  renderFunction: RenderFunction
+  renderFunction: RenderFunction,
+  emit: (event: AgentEvent) => void
 ) {
   return tool({
     name: 'replace_canvas',
@@ -30,12 +31,27 @@ export function createReplaceCanvasTool(
 
       // If rendering failed, return error as text
       if (renderResult.error) {
+        // Emit render_complete event with error
+        emit({
+          type: 'render_complete',
+          canvasUpdateId: canvasUpdateId,
+          success: false,
+          error: renderResult.error,
+        });
+
         result = `Canvas updated, but rendering failed: ${renderResult.error}`;
         return result;
       }
 
       // If rendering succeeded, return the PNG image as tool output
       if (renderResult.png) {
+        // Emit render_complete event with success
+        emit({
+          type: 'render_complete',
+          canvasUpdateId: canvasUpdateId,
+          success: true,
+        });
+
         // Extract base64 data from data URL (data:image/png;base64,...)
         const base64Data = renderResult.png.replace(/^data:image\/png;base64,/, '');
 
@@ -50,6 +66,12 @@ export function createReplaceCanvasTool(
       }
 
       // Fallback if no PNG or error
+      emit({
+        type: 'render_complete',
+        canvasUpdateId: canvasUpdateId,
+        success: true,
+      });
+
       result = 'Canvas replaced successfully';
       return result;
     },

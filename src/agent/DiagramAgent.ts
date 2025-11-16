@@ -135,6 +135,17 @@ export interface CanvasUpdateEvent {
   canvasUpdateId: string;
 }
 
+/** Event fired when D2 rendering completes. */
+export interface RenderCompleteEvent {
+  type: "render_complete";
+  /** The canvas update ID this render corresponds to */
+  canvasUpdateId: string;
+  /** Whether rendering succeeded */
+  success: boolean;
+  /** Error message if rendering failed */
+  error?: string;
+}
+
 /** Event fired when an error occurs during agent execution. */
 export interface ErrorEvent {
   type: "error";
@@ -160,6 +171,7 @@ export type AgentEvent =
   | ToolStartEvent
   | ToolEndEvent
   | CanvasUpdateEvent
+  | RenderCompleteEvent
   | ErrorEvent
   | CompleteEvent;
 

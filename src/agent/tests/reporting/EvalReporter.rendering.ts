@@ -5,7 +5,7 @@
  * It's separated from the reporter to make it easily testable.
  */
 
-import type { RecordedEvent, UserMessageEvent, AssistantMessageEvent, ToolCallEvent, ToolResultEvent, CanvasUpdateEvent, AssertionEvent, ErrorEvent } from '../recording/types';
+import type { RecordedEvent, UserMessageEvent, AssistantMessageEvent, ToolCallEvent, ToolResultEvent, CanvasUpdateEvent, RenderCompleteEvent, AssertionEvent, ErrorEvent } from '../recording/types';
 
 /**
  * Data required to render a single test conversation
@@ -77,9 +77,18 @@ export function formatMs(ms: number): string {
 }
 
 /**
+ * Find the render_complete event matching a canvas_update event
+ */
+function findRenderCompleteEvent(canvasUpdateId: string, allEvents: RecordedEvent[]): RenderCompleteEvent | undefined {
+  return allEvents.find(
+    (e): e is RenderCompleteEvent => e.type === 'render_complete' && e.canvasUpdateId === canvasUpdateId
+  );
+}
+
+/**
  * Render a single event based on its type
  */
-export function renderEvent(event: RecordedEvent, fileId: string, testIndex: number): string {
+export function renderEvent(event: RecordedEvent, fileId: string, testIndex: number, allEvents: RecordedEvent[]): string {
   const typeHtml = `<span class="event-type ${event.type}">${event.type.replace(/_/g, ' ')}</span>`;
   const timeHtml = `<span class="event-time">${formatMs(event.relativeTime || 0)} ms</span>`;
 
@@ -131,9 +140,26 @@ export function renderEvent(event: RecordedEvent, fileId: string, testIndex: num
     // Build file paths based on fileId, testIndex, and canvasUpdateId
     const pngPath = `./${fileId}/test-${testIndex}/${canvasUpdateId}.png`;
 
+    // Find corresponding render_complete event to show timing
+    const renderComplete = findRenderCompleteEvent(canvasUpdateId, allEvents);
+
+    let renderStatusHtml = '';
+    if (renderComplete) {
+      const renderDuration = (renderComplete.time || 0) - (event.time || 0);
+      if (renderComplete.success) {
+        renderStatusHtml = `<span class="render-status success">✓ Rendered in ${formatMs(renderDuration)} ms</span>`;
+      } else {
+        renderStatusHtml = `<span class="render-status error">✗ Render failed: ${escapeHtml(renderComplete.error || 'Unknown error')}</span>`;
+      }
+    }
+
     return `
       <div class="event ${event.type}">
-        <div class="event-header">${typeHtml}${timeHtml}</div>
+        <div class="event-header">
+          ${typeHtml}
+          ${renderStatusHtml}
+          ${timeHtml}
+        </div>
         <div class="canvas-images">
           <div class="canvas-image">
             <img src="${pngPath}" alt="Canvas rendering" onerror="this.style.display='none'">
@@ -146,6 +172,11 @@ export function renderEvent(event: RecordedEvent, fileId: string, testIndex: num
         </details>
       </div>
     `;
+  }
+
+  // Skip render_complete events as they're merged into canvas_update
+  if (event.type === 'render_complete') {
+    return '';
   }
 
   if (event.type === 'assertion') {
@@ -189,7 +220,7 @@ export function renderEvent(event: RecordedEvent, fileId: string, testIndex: num
  * Render all events for a test into HTML
  */
 export function renderTestEvents(test: TestConversationData): string {
-  return test.events.map((event) => renderEvent(event, test.fileId, test.index)).join('');
+  return test.events.map((event) => renderEvent(event, test.fileId, test.index, test.events)).join('');
 }
 
 /**
@@ -293,7 +324,7 @@ export function generateHtml(data: ReportData): string {
     .event.assertion { border-left-color: #00bcd4; }
     .event.error { border-left-color: #f44336; background: #ffebee; }
 
-    .event-header { font-weight: bold; font-size: 13px; margin-bottom: 8px; display: flex; justify-content: space-between; }
+    .event-header { font-weight: bold; font-size: 13px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
     .event-type { text-transform: uppercase; font-size: 11px; padding: 2px 6px; border-radius: 3px; background: #e0e0e0; }
     .event-type.user_message { background: #e3f2fd; color: #1976d2; }
     .event-type.assistant_message { background: #e8f5e9; color: #388e3c; }
@@ -302,6 +333,10 @@ export function generateHtml(data: ReportData): string {
     .event-type.canvas_update { background: #f3e5f5; color: #7b1fa2; }
     .event-type.assertion { background: #e0f2f1; color: #00796b; }
     .event-type.error { background: #ffebee; color: #d32f2f; }
+
+    .render-status { font-size: 11px; padding: 3px 8px; border-radius: 3px; font-weight: 500; }
+    .render-status.success { background: #e8f5e9; color: #2e7d32; }
+    .render-status.error { background: #ffebee; color: #c62828; }
 
     .event-time { font-size: 11px; color: #999; }
     .event-content { white-space: pre-wrap; word-break: break-word; font-family: 'Courier New', monospace; font-size: 13px; }

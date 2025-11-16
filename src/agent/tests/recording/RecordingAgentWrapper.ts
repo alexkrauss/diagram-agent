@@ -124,6 +124,16 @@ export function createRecordingCallback(recorder: EventRecorder): (event: AgentE
         });
         break;
 
+      case 'render_complete':
+        recorder.record({
+          type: 'render_complete',
+          time,
+          canvasUpdateId: event.canvasUpdateId,
+          success: event.success,
+          error: event.error,
+        });
+        break;
+
       case 'error':
         recorder.record({
           type: 'error',

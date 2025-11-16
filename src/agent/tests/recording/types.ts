@@ -55,6 +55,16 @@ export interface CanvasUpdateEvent extends BaseEvent {
 }
 
 /**
+ * Render complete event
+ */
+export interface RenderCompleteEvent extends BaseEvent {
+  type: 'render_complete';
+  canvasUpdateId: string;
+  success: boolean;
+  error?: string;
+}
+
+/**
  * Assertion event (both pass and fail)
  */
 export interface AssertionEvent extends BaseEvent {
@@ -86,5 +96,6 @@ export type RecordedEvent =
   | ToolCallEvent
   | ToolResultEvent
   | CanvasUpdateEvent
+  | RenderCompleteEvent
   | AssertionEvent
   | ErrorEvent;

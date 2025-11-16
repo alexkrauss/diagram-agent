@@ -56,7 +56,7 @@ export class D2Agent implements DiagramAgent {
         content: this.canvas,
         canvasUpdateId: canvasUpdateId,
       });
-    }, config.renderFunction);
+    }, config.renderFunction, (event) => this.emit(event));
 
     // Create agent with instructions and tools
     this.agent = new Agent({
