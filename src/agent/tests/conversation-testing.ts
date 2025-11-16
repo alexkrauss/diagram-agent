@@ -290,6 +290,11 @@ export interface AgentWrapper {
   readonly state: AgentState;
 
   /**
+   * Attach prose criteria to the most recent completed turn.
+   */
+  criteria(...criteria: string[]): void;
+
+  /**
    * Reset the agent to initial state.
    * Clears conversation history and canvas.
    */

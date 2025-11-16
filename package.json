@@ -8,7 +8,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "eval": "vitest run --config vitest.eval.config.ts",
+    "eval": "vitest run --config vitest.eval.config.ts && uv run scripts/ragas_eval.py --provider gemini --model models/gemini-3-flash-preview",
     "check": "npm run typecheck && npm run test"
   },
   "keywords": [],

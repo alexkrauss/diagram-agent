@@ -1,12 +1,12 @@
 /**
- * EvalReporter - Vitest custom reporter that collects test results and generates HTML report
+ * EvalReporter - Vitest custom reporter that collects test results and writes JSON for Ragas
  *
  * This reporter reads test metadata (which includes recorded events with canvasUpdateIds)
- * and generates HTML with references to pre-rendered SVG/PNG files captured during test execution.
+ * and writes a JSON file that the Python Ragas runner can enrich and render to HTML.
  *
  * File structure:
  * eval-results/
- * ├── eval-report.html
+ * ├── ragas-input.json
  * ├── test-0/
  * │   ├── canvas-0.svg
  * │   ├── canvas-0.png
@@ -22,11 +22,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import type { RecordedEvent } from "../recording/types";
 import type { TestMetadata } from "../conversation-testing";
-import {
-  generateHtml,
-  type ReportData,
-  type TestConversationData,
-} from "./EvalReporter.rendering";
+import { buildTurnRecords, type RagasInput, type TestRecord } from "./ragasInput";
 
 /**
  * Collected result for a single test
@@ -107,7 +103,7 @@ export default class EvalReporter implements Reporter {
   }
 
   async onFinished() {
-    // Generate HTML report
+    // Generate JSON report input
     try {
       // Collect all results
       const files = Array.from(this.allResults.values());
@@ -119,39 +115,38 @@ export default class EvalReporter implements Reporter {
 
       const summary = this.calculateSummary(files);
 
-      // Convert to rendering format
-      const conversations: TestConversationData[] = [];
+      const tests: TestRecord[] = [];
 
       for (const file of files) {
         for (const test of file.tests) {
-          conversations.push({
+          tests.push({
             fileId: test.fileId,
-            index: test.testIndex,
-            name: test.fullName,
+            testIndex: test.testIndex,
+            name: test.name,
+            fullName: test.fullName,
+            hierarchy: test.hierarchy,
             passed: test.passed,
             duration: test.duration,
+            events: test.events,
             summary: test.summary,
             error: test.error,
-            events: test.events,
+            turns: buildTurnRecords(test.events, test.fileId, test.testIndex),
           });
         }
       }
 
-      const reportData: ReportData = {
-        conversations,
+      const ragasInput: RagasInput = {
+        generatedAt: new Date().toISOString(),
         summary,
+        tests,
       };
 
-      // Generate HTML using the rendering module
-      const html = generateHtml(reportData);
+      const outputPath = path.join(evalResultsDir, "ragas-input.json");
+      await fs.writeFile(outputPath, JSON.stringify(ragasInput, null, 2));
 
-      // Write to file
-      const outputPath = path.join(evalResultsDir, "eval-report.html");
-      await fs.writeFile(outputPath, html);
-
-      console.log(`\n✓ HTML report generated: ${outputPath}\n`);
+      console.log(`\n✓ Ragas input generated: ${outputPath}\n`);
     } catch (error) {
-      console.error("\n✗ Failed to generate HTML report:", error);
+      console.error("\n✗ Failed to generate Ragas input:", error);
     }
   }
 

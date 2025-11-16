@@ -1,23 +1,81 @@
-# Agent Test Harness
+# Agent Evaluation Process
 
-This document defines the required setup for testing the diagram agent properly.
+This document describes the evaluation pipeline for the diagram agent, including the TypeScript DSL, the intermediate JSON format, and the HTML report.
 
-## Goals
+## Architecture Overview
 
-We need a test harness
+```
+             +---------------------------+
+User prompts |  .eval.ts (TS DSL tests)  |
+-----------> |  conversation(...)        |
+             +-------------+-------------+
+                           |
+                           v
+             +---------------------------+
+             |  Vitest eval run          |
+             |  render + event capture   |
+             +-------------+-------------+
+                           |
+                           v
+             +---------------------------+
+             |  eval-results/ragas-input |
+             |  (JSON with turns, images)|
+             +-------------+-------------+
+                           |
+                           v
+             +---------------------------+
+             |  uv run scripts/ragas_eval|
+             |  judge + HTML rendering   |
+             +-------------+-------------+
+                           |
+                           v
+             +---------------------------+
+             |  eval-results/eval-report |
+             |  (HTML report)            |
+             +---------------------------+
+```
 
-- Ensure that we can iterate on prompts, tools and model choices and have a consistent view on
-  the resulting overall agent performance.
-- Guard against regressions
-- Understand fundamental limitations of the approach
-- judge the impact of any structural changes
+The eval suite runs the TypeScript DSL tests with full rendering and event capture, writes a JSON snapshot, then the Python runner judges each turn and renders the final HTML report.
 
-## Requirements
+## TypeScript DSL
 
-- must be compatible with the overall tech stack, i.e., be written in typescript
-- must call the "real models" (not mocks), since this is what we are going to test
-- must include the rendering pipeline, to feed back rendered results. Thus, must find a way of rendering svgs to pixels.
+Tests live in `src/agent/tests/*.eval.ts` and use the internal DSL:
 
-- must provide a simple way to specify test scenarios in the form of chat sessions and expected results.
-  -- suggestion: a yaml or similar textual format for this, interpreted by code.
-- must have a way to deal with inherent nondeterminism. How do we judge if the produced diagram description is correct? Idea: Use an LLM-as-a-judge approach to at least make sure that some basic properties of the result are present (e.g., the following components must be in the picture)
+- `conversation(name, createAgent, async (agent) => { ... })`
+- `await agent.send(...)` executes one turn and captures all events, renders, and images.
+- `agent.criteria(...)` attaches prose criteria for the judge to evaluate.
+
+The DSL keeps tests readable while capturing everything needed for evaluation and reporting.
+
+## Intermediate Format (ragas-input.json)
+
+The Vitest reporter writes `eval-results/ragas-input.json` after an eval run.
+It contains:
+
+- Test metadata (name, status, timing)
+- Turn records (prompt transcript, latest D2, PNG path)
+- Prose criteria per turn
+
+This file is the handoff point to the judge.
+
+## HTML Report
+
+The Python runner (`scripts/ragas_eval.py`) reads `ragas-input.json`, runs the visual judge, and produces:
+
+- `eval-results/ragas-output.json` (enriched with judge scores)
+- `eval-results/eval-report.html` (the primary report)
+
+The report shows:
+
+- Per-test PASS/FAIL from the eval assertions
+- Per-turn images, prompts, and judge criteria results
+- Missing images and other diagnostics
+
+## Running the Eval
+
+`npm run eval` runs the full pipeline:
+
+1) `vitest run --config vitest.eval.config.ts`
+2) `uv run scripts/ragas_eval.py --provider gemini --model models/gemini-3-flash-preview`
+
+Open `eval-results/eval-report.html` to view the results.

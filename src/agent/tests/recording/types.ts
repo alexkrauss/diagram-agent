@@ -88,6 +88,26 @@ export interface ErrorEvent extends BaseEvent {
 }
 
 /**
+ * Criteria attached to a completed turn
+ */
+export interface CriteriaEvent extends BaseEvent {
+  type: 'criteria';
+  turnIndex: number;
+  criteria: string[];
+}
+
+/**
+ * End-of-turn snapshot
+ */
+export interface TurnCompleteEvent extends BaseEvent {
+  type: 'turn_complete';
+  turnIndex: number;
+  canvasUpdateId?: string;
+  d2Content?: string;
+  conversation?: Array<{ role: string; content: string }>;
+}
+
+/**
  * All possible event types
  */
 export type RecordedEvent =
@@ -98,4 +118,6 @@ export type RecordedEvent =
   | CanvasUpdateEvent
   | RenderCompleteEvent
   | AssertionEvent
-  | ErrorEvent;
+  | ErrorEvent
+  | CriteriaEvent
+  | TurnCompleteEvent;

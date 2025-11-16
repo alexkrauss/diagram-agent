@@ -9,6 +9,7 @@ import type { AgentWrapper, CanvasState, ConversationState } from '../conversati
 export class RecordingAgentWrapper implements AgentWrapper {
   private agent: DiagramAgent;
   private recorder: EventRecorder;
+  private turnIndex: number = -1;
 
   constructor(agent: DiagramAgent, recorder: EventRecorder) {
     this.agent = agent;
@@ -27,8 +28,34 @@ export class RecordingAgentWrapper implements AgentWrapper {
       content: message,
     });
 
+    const eventStartIndex = this.recorder.getEvents().length;
+
     // Send to agent (agent events are recorded via callback during agent creation)
     await this.agent.sendMessage(message);
+
+    const events = this.recorder.getEvents().slice(eventStartIndex);
+    const lastCanvasUpdate = [...events]
+      .reverse()
+      .find((event) => event.type === 'canvas_update');
+
+    this.turnIndex += 1;
+
+    this.recorder.record({
+      type: 'turn_complete',
+      time: Date.now(),
+      turnIndex: this.turnIndex,
+      canvasUpdateId:
+        lastCanvasUpdate?.type === 'canvas_update'
+          ? lastCanvasUpdate.canvasUpdateId
+          : undefined,
+      d2Content:
+        lastCanvasUpdate?.type === 'canvas_update'
+          ? lastCanvasUpdate.d2Content
+          : this.agent.getCanvasContent(),
+      conversation: this.agent
+        .getConversationHistory()
+        .map((message) => ({ role: message.role, content: message.content })),
+    });
   }
 
   /**
@@ -54,6 +81,21 @@ export class RecordingAgentWrapper implements AgentWrapper {
    */
   get state(): AgentState {
     return this.agent.getState();
+  }
+
+  /**
+   * Attach prose criteria to the most recent completed turn.
+   */
+  criteria(...criteria: string[]): void {
+    if (this.turnIndex < 0) {
+      throw new Error('criteria() must be called after at least one send().');
+    }
+    this.recorder.record({
+      type: 'criteria',
+      time: Date.now(),
+      turnIndex: this.turnIndex,
+      criteria,
+    });
   }
 
   /**

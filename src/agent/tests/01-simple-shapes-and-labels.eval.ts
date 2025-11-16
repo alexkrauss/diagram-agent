@@ -55,34 +55,17 @@ describe("Benchmark: Simple Shapes and Labels", () => {
   conversation(
     "Simple Diagram with Two Shapes",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       // ACTION: Send message to agent
       await agent.send(
         "Create a diagram with two shapes: one labeled 'Frontend App' and one labeled 'Backend Server'",
       );
 
-      // OBSERVATION: Access canvas state
-      const canvas = agent.canvas;
-
-      // ASSERTIONS: Validate the diagram content
-      expect(
-        canvas.content,
-        "Canvas should contain 'Frontend App'",
-      ).toContain("Frontend App");
-      expect(
-        canvas.content,
-        "Canvas should contain 'Backend Server'",
-      ).toContain("Backend Server");
-      expect(
-        canvas.content.trim().length,
-        "Canvas should not be empty",
-      ).toBeGreaterThan(0);
-
-      // TODO: Add assertions for:
-      // - Exactly two shapes are declared
-      // - No connections or relationships exist between shapes
-      // - Both shapes are default type (rectangle)
-      // - The generated D2 code is valid and parseable
+      agent.criteria(
+        "The diagram shows exactly two shapes labeled 'Frontend App' and 'Backend Server'.",
+        "There are no connections or arrows between the two shapes.",
+        "Both shapes appear as default rectangles (no special shape styling).",
+      );
     },
   );
 
