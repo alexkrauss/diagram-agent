@@ -18,13 +18,13 @@ User prompts |  .eval.ts (TS DSL tests)  |
                            |
                            v
              +---------------------------+
-             |  eval-results/ragas-input |
+             |  eval-results/visual-eval-input |
              |  (JSON with turns, images)|
              +-------------+-------------+
                            |
                            v
              +---------------------------+
-             |  uv run scripts/ragas_eval|
+             |  uv run scripts/visual_eval|
              |  judge + HTML rendering   |
              +-------------+-------------+
                            |
@@ -47,9 +47,9 @@ Tests live in `src/agent/tests/*.eval.ts` and use the internal DSL:
 
 The DSL keeps tests readable while capturing everything needed for evaluation and reporting.
 
-## Intermediate Format (ragas-input.json)
+## Intermediate Format (visual-eval-input.json)
 
-The Vitest reporter writes `eval-results/ragas-input.json` after an eval run.
+The Vitest reporter writes `eval-results/visual-eval-input.json` after an eval run.
 It contains:
 
 - Test metadata (name, status, timing)
@@ -60,14 +60,13 @@ This file is the handoff point to the judge.
 
 ## HTML Report
 
-The Python runner (`scripts/ragas_eval.py`) reads `ragas-input.json`, runs the visual judge, and produces:
+The Python runner (`scripts/visual_eval.py`) reads `visual-eval-input.json`, runs the visual judge, and produces:
 
-- `eval-results/ragas-output.json` (enriched with judge scores)
+- `eval-results/visual-eval-output.json` (enriched with judge scores)
 - `eval-results/eval-report.html` (the primary report)
 
 The report shows:
 
-- Per-test PASS/FAIL from the eval assertions
 - Per-turn images, prompts, and judge criteria results
 - Missing images and other diagnostics
 
@@ -76,6 +75,6 @@ The report shows:
 `npm run eval` runs the full pipeline:
 
 1) `vitest run --config vitest.eval.config.ts`
-2) `uv run scripts/ragas_eval.py --provider gemini --model models/gemini-3-flash-preview`
+2) `uv run scripts/visual_eval.py --provider gemini --model models/gemini-3-flash-preview`
 
 Open `eval-results/eval-report.html` to view the results.

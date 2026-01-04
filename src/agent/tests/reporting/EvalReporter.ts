@@ -1,12 +1,12 @@
 /**
- * EvalReporter - Vitest custom reporter that collects test results and writes JSON for Ragas
+ * EvalReporter - Vitest custom reporter that collects test results and writes JSON for visual eval
  *
  * This reporter reads test metadata (which includes recorded events with canvasUpdateIds)
- * and writes a JSON file that the Python Ragas runner can enrich and render to HTML.
+ * and writes a JSON file that the Python visual evaluator can enrich and render to HTML.
  *
  * File structure:
  * eval-results/
- * ├── ragas-input.json
+ * ├── visual-eval-input.json
  * ├── test-0/
  * │   ├── canvas-0.svg
  * │   ├── canvas-0.png
@@ -22,7 +22,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import type { RecordedEvent } from "../recording/types";
 import type { TestMetadata } from "../conversation-testing";
-import { buildTurnRecords, type RagasInput, type TestRecord } from "./ragasInput";
+import { buildTurnRecords, type VisualEvalInput, type TestRecord } from "./visualInput";
 
 /**
  * Collected result for a single test
@@ -135,18 +135,18 @@ export default class EvalReporter implements Reporter {
         }
       }
 
-      const ragasInput: RagasInput = {
+      const visualInput: VisualEvalInput = {
         generatedAt: new Date().toISOString(),
         summary,
         tests,
       };
 
-      const outputPath = path.join(evalResultsDir, "ragas-input.json");
-      await fs.writeFile(outputPath, JSON.stringify(ragasInput, null, 2));
+      const outputPath = path.join(evalResultsDir, "visual-eval-input.json");
+      await fs.writeFile(outputPath, JSON.stringify(visualInput, null, 2));
 
-      console.log(`\n✓ Ragas input generated: ${outputPath}\n`);
+      console.log(`\n✓ Visual eval input generated: ${outputPath}\n`);
     } catch (error) {
-      console.error("\n✗ Failed to generate Ragas input:", error);
+      console.error("\n✗ Failed to generate visual eval input:", error);
     }
   }
 

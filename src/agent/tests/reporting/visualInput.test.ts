@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RecordedEvent } from '../recording/types';
-import { buildTurnRecords } from './ragasInput';
+import { buildTurnRecords } from './visualInput';
 
 describe('buildTurnRecords', () => {
   it('attaches criteria and builds prompt/payload fields', () => {

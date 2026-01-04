@@ -38,3 +38,5 @@ eval-report.html
 
 # Evaluation results
 eval-results/
+
+__pycache__

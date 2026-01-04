@@ -31,7 +31,7 @@ export interface TestRecord {
   turns: TurnRecord[];
 }
 
-export interface RagasInput {
+export interface VisualEvalInput {
   generatedAt: string;
   summary: {
     totalTests: number;
@@ -45,7 +45,10 @@ export interface RagasInput {
 }
 
 function formatPrompt(messages: Array<{ role: string; content: string }>): string {
-  return messages
+  const userMessages = messages.filter((message) => message.role === 'user');
+  const source = userMessages.length > 0 ? userMessages : messages;
+
+  return source
     .map((message) => {
       const role = message.role.toUpperCase();
       return `${role}: ${message.content}`;

@@ -1,9 +1,10 @@
 import unittest
 
-from scripts.ragas_eval import evaluate_dataset, render_html, JudgeResult
+from scripts.visual_eval import evaluate_dataset, JudgeResult
+from scripts.visual_report import render_html
 
 
-class RagasEvalTests(unittest.TestCase):
+class VisualEvalTests(unittest.TestCase):
     def test_evaluate_dataset_adds_scores(self):
         data = {
             "summary": {},
@@ -64,9 +65,9 @@ class RagasEvalTests(unittest.TestCase):
         html = render_html(data)
         self.assertIn("Test B", html)
         self.assertIn("A exists", html)
+        self.assertIn("Score: 1", html)
         self.assertIn("canvas-0.png", html)
         self.assertIn("USER: Draw A", html)
-        self.assertIn("PASS/FAIL reflects test assertions", html)
 
     def test_render_html_marks_missing_images_and_no_criteria(self):
         data = {

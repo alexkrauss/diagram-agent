@@ -1,6 +1,6 @@
-# Ragas Eval Plan
+# Visual Eval Plan
 
-Goal: evaluate each agent "return control" turn using a visual judge LLM with prose criteria, while keeping the TypeScript conversation DSL for running the agent and collecting artifacts. The TypeScript side only emits JSON; a Python runner enriches with Ragas scores and generates the final HTML report.
+Goal: evaluate each agent "return control" turn using a visual judge LLM with prose criteria, while keeping the TypeScript conversation DSL for running the agent and collecting artifacts. The TypeScript side only emits JSON; a Python runner enriches with judge scores and generates the final HTML report.
 
 ## Step 1: Define minimal prose-criteria DSL in TypeScript (done)
 - Add a small API in the eval DSL (e.g., `criteria(...)`) that attaches a list of prose strings to a test/turn.
@@ -14,17 +14,17 @@ Goal: evaluate each agent "return control" turn using a visual judge LLM with pr
 - Mark completion when running one eval produces turn records for every user turn (not every canvas update).
 - Unit test: add a test that sends two messages, triggers multiple canvas updates per turn, and asserts exactly two turn records with the last canvas update per turn.
 
-## Step 3: Export a Ragas-ready dataset (done)
+## Step 3: Export a visual-eval dataset (done)
 - Write a dataset writer that saves a JSON file under `eval-results/` containing all turn records plus run metadata.
 - Fields should be stable and simple: `test_id`, `turn_index`, `prompt`, `answer`, `criteria`, `png_path`, `d2_content`.
-- Mark completion when a single eval run produces `eval-results/ragas-input.json`.
+- Mark completion when a single eval run produces `eval-results/visual-eval-input.json`.
 - Unit test: add a test that serializes a small in-memory run and asserts the JSON schema shape.
 
-## Step 4: Add a Ragas judge runner (uv/uvx) (done)
-- Implement a Python script (e.g., `scripts/ragas_eval.py`) that:
-  - loads `eval-results/ragas-input.json`,
+## Step 4: Add a visual judge runner (uv/uvx) (done)
+- Implement a Python script (e.g., `scripts/visual_eval.py`) that:
+  - loads `eval-results/visual-eval-input.json`,
   - calls a visual judge LLM on each row with the PNG + criteria,
-  - writes `eval-results/ragas-output.json` that includes the original data plus per-criterion scores and rationales.
+  - writes `eval-results/visual-eval-output.json` that includes the original data plus per-criterion scores and rationales.
 - Provide a `uvx` command to run it without manual venv management.
 - Mark completion when the script can run against one test and produce output JSON.
 - Unit test: add a python unit test that stubs the judge call and validates output structure for one row.
@@ -37,15 +37,15 @@ Goal: evaluate each agent "return control" turn using a visual judge LLM with pr
 
 ## Step 6: Generate HTML report in Python (done)
 - Move HTML generation to the Python runner using a template that mirrors the existing report layout.
-- The runner should read `ragas-output.json` and emit `eval-results/eval-report.html`.
+- The runner should read `visual-eval-output.json` and emit `eval-results/eval-report.html`.
 - Display per-criterion pass/fail (or numeric score) and judge rationale near the corresponding PNG.
 - Mark completion when the report shows judge results for each turn.
 - Unit test: add a python test that renders a minimal dataset and asserts the HTML includes the test name, an image path, and a criterion score.
 
 ## Step 7: Add a minimal usage path (done)
 - Document the full flow:
-  1) `npm run eval` to generate artifacts and `eval-results/ragas-input.json`,
-  2) `uvx python scripts/ragas_eval.py ...` to score and render HTML,
+  1) `npm run eval` to generate artifacts and `eval-results/visual-eval-input.json`,
+  2) `uvx python scripts/visual_eval.py ...` to score and render HTML,
   3) open `eval-results/eval-report.html` to view results.
 - Mark completion when the README section matches the actual commands and output paths.
 - Unit test: none (documentation only).
@@ -53,7 +53,7 @@ Goal: evaluate each agent "return control" turn using a visual judge LLM with pr
 ## Step 8: Add criteria to the first test and render once (done)
 - Add `agent.criteria(...)` to the first test in `01-simple-shapes-and-labels.eval.ts`, replacing text-based `expect` assertions.
 - Use prose criteria derived from `spec/benchmark/01-simple-shapes-and-labels.md`.
-- Mark completion when `ragas-input.json` contains non-empty `criteria` for that first test and `eval-report.html` shows judge output.
+- Mark completion when `visual-eval-input.json` contains non-empty `criteria` for that first test and `eval-report.html` shows judge output.
 - Unit test: none (covered by manual run to verify HTML rendering).
 
 ## Step 9: Show prompts in the HTML report (done)

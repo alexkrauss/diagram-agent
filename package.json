@@ -8,7 +8,10 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "eval": "vitest run --config vitest.eval.config.ts && uv run scripts/ragas_eval.py --provider gemini --model models/gemini-3-flash-preview",
+    "eval:exec": "vitest run --config vitest.eval.config.ts",
+    "eval:judge": "uv run scripts/visual_eval.py --provider gemini --model models/gemini-3-flash-preview",
+    "eval:render": "uv run scripts/visual_render.py",
+    "eval": "npm run eval:exec && npm run eval:judge && npm run eval:render",
     "check": "npm run typecheck && npm run test"
   },
   "keywords": [],
