@@ -50,7 +50,7 @@ describe("DiagramAgent - Icons and Images", () => {
   conversation(
     "Basic Icons on Different Shape Types",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       // ACTION: Send message to agent
       await agent.send(
         "Create a diagram with three shapes representing different services:\n" +
@@ -59,43 +59,13 @@ describe("DiagramAgent - Icons and Images", () => {
           "3. A circle labeled \"User\" with an icon from https://icons.terrastruct.com/tech/032-user.svg"
       );
 
-      // OBSERVATION: Access canvas state
-      const canvas = agent.canvas;
-
-      // ASSERTION: Check for AWS Account container with icon
-      expect(
-        canvas.content,
-        "Canvas should contain AWS Account label"
-      ).toContain("AWS Account");
-      expect(
-        canvas.content,
-        "Canvas should contain AWS Lambda icon URL"
-      ).toContain("https://icons.terrastruct.com/aws%2FArchitecture%20Service%20Icons%2FCompute%2FAWSLambda_light-bg.svg");
-      // TODO: Add assertion for AWS Account having shape: container
-
-      // ASSERTION: Check for Database rectangle with icon
-      expect(
-        canvas.content,
-        "Canvas should contain Database label"
-      ).toContain("Database");
-      expect(
-        canvas.content,
-        "Canvas should contain database icon URL"
-      ).toContain("https://icons.terrastruct.com/tech/022-database.svg");
-
-      // ASSERTION: Check for User circle with icon
-      expect(
-        canvas.content,
-        "Canvas should contain User label"
-      ).toContain("User");
-      expect(
-        canvas.content,
-        "Canvas should contain user icon URL"
-      ).toContain("https://icons.terrastruct.com/tech/032-user.svg");
-      expect(
-        canvas.content,
-        "Canvas should contain circle shape for User"
-      ).toMatch(/user.*shape.*:.*circle|circle.*:.*user/i);
+      agent.criteria(
+        "The diagram includes an AWS Account container with the specified AWS Lambda icon URL.",
+        "A Database rectangle includes the specified database icon URL.",
+        "A User circle includes the specified user icon URL.",
+        "Each icon is applied to its corresponding labeled shape type.",
+        "No extra shapes are added and the output renders as valid D2.",
+      );
     }
   );
 
@@ -108,7 +78,7 @@ describe("DiagramAgent - Icons and Images", () => {
   conversation(
     "Container with Icon and Nested Shapes",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       // ACTION: Send message to agent
       await agent.send(
         "Create a system architecture diagram with a container representing \"Kubernetes Cluster\" that has an icon " +
@@ -116,33 +86,12 @@ describe("DiagramAgent - Icons and Images", () => {
           "one labeled \"Pod A\" and another labeled \"Pod B\"."
       );
 
-      // OBSERVATION: Access canvas state
-      const canvas = agent.canvas;
-
-      // ASSERTION: Check for Kubernetes Cluster container with icon
-      expect(
-        canvas.content,
-        "Canvas should contain Kubernetes Cluster label"
-      ).toContain("Kubernetes Cluster");
-      expect(
-        canvas.content,
-        "Canvas should contain Kubernetes icon URL"
-      ).toContain("https://icons.terrastruct.com/tech/167-kubernetes.svg");
-      // TODO: Add assertion for Kubernetes Cluster having shape: container
-
-      // ASSERTION: Check for nested Pod A
-      expect(
-        canvas.content,
-        "Canvas should contain Pod A label"
-      ).toContain("Pod A");
-
-      // ASSERTION: Check for nested Pod B
-      expect(
-        canvas.content,
-        "Canvas should contain Pod B label"
-      ).toContain("Pod B");
-
-      // TODO: Add assertion for Pod A and Pod B being children of Kubernetes Cluster
+      agent.criteria(
+        "A Kubernetes Cluster container is present with the specified Kubernetes icon URL.",
+        "Pod A and Pod B are rectangles nested inside the Kubernetes Cluster container.",
+        "The container and children are labeled correctly with no extra shapes.",
+        "The diagram renders as valid D2.",
+      );
     }
   );
 
@@ -154,29 +103,18 @@ describe("DiagramAgent - Icons and Images", () => {
   conversation(
     "Standalone Image Using shape: image",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       // ACTION: Send message to agent
       await agent.send(
         "Create a simple diagram with a standalone image shape labeled \"Team Logo\" that displays the image " +
           "from https://icons.terrastruct.com/tech/010-user-group.svg."
       );
 
-      // OBSERVATION: Access canvas state
-      const canvas = agent.canvas;
-
-      // ASSERTION: Check for Team Logo with shape: image
-      expect(
-        canvas.content,
-        "Canvas should contain Team Logo label"
-      ).toContain("Team Logo");
-      expect(
-        canvas.content,
-        "Canvas should contain user group icon URL"
-      ).toContain("https://icons.terrastruct.com/tech/010-user-group.svg");
-      expect(
-        canvas.content,
-        "Canvas should contain shape: image for Team Logo"
-      ).toMatch(/team.*logo.*shape.*:.*image/i);
+      agent.criteria(
+        "The diagram contains a standalone image shape labeled Team Logo.",
+        "The Team Logo uses shape: image and displays the specified user group icon URL.",
+        "No other shapes are included and the output renders as valid D2.",
+      );
     }
   );
 
@@ -189,7 +127,7 @@ describe("DiagramAgent - Icons and Images", () => {
   conversation(
     "Icons with Other Shape Properties",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       // ACTION: Send message to agent
       await agent.send(
         "Create a diagram with a rectangle labeled \"Processed Data\" that has:\n" +
@@ -199,42 +137,12 @@ describe("DiagramAgent - Icons and Images", () => {
           "4. Another rectangle labeled \"Output\" connected with an arrow"
       );
 
-      // OBSERVATION: Access canvas state
-      const canvas = agent.canvas;
-
-      // ASSERTION: Check for Processed Data with icon
-      expect(
-        canvas.content,
-        "Canvas should contain Processed Data label"
-      ).toContain("Processed Data");
-      expect(
-        canvas.content,
-        "Canvas should contain copy/document icon URL"
-      ).toContain("https://icons.terrastruct.com/tech/021-copy.svg");
-
-      // ASSERTION: Check for fill color
-      expect(
-        canvas.content,
-        "Canvas should contain fill color #E8F4F8"
-      ).toContain("#E8F4F8");
-
-      // ASSERTION: Check for font color
-      expect(
-        canvas.content,
-        "Canvas should contain font color #2C3E50"
-      ).toContain("#2C3E50");
-
-      // ASSERTION: Check for Output shape
-      expect(
-        canvas.content,
-        "Canvas should contain Output label"
-      ).toContain("Output");
-
-      // ASSERTION: Check for connection between Processed Data and Output
-      expect(
-        canvas.content,
-        "Canvas should contain connection from Processed Data to Output"
-      ).toMatch(/processed.*data.*->.*output|processed.*data.*--.*output/i);
+      agent.criteria(
+        "Processed Data is a rectangle with the specified copy icon URL, fill color #E8F4F8, and font color #2C3E50.",
+        "An Output rectangle is present and connected from Processed Data with a directed arrow.",
+        "Icons and styling coexist correctly on the Processed Data shape.",
+        "No extra shapes are added and the diagram renders as valid D2.",
+      );
     }
   );
 });

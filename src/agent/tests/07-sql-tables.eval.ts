@@ -58,7 +58,7 @@ describe("SQL Tables and Entity-Relationship Diagrams", () => {
   conversation(
     "Simple single table with basic columns and types",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       // ACTION: Send message to agent
       await agent.send(
         "Create a SQL table diagram for a users table with the following columns:\n" +
@@ -68,44 +68,13 @@ describe("SQL Tables and Entity-Relationship Diagrams", () => {
           "- created_at column of type timestamp with no constraints"
       );
 
-      // OBSERVATION: Access canvas state
-      const canvas = agent.canvas;
-
-      // ASSERTION: Use custom expect for recording
-      expect(canvas.content, "Canvas should contain sql_table shape").toContain(
-        "sql_table"
+      agent.criteria(
+        "The diagram shows a users table rendered as an SQL table shape.",
+        "The users table includes columns id (int, primary key), name (string), email (string), and created_at (timestamp).",
+        "Only the id column carries the primary key constraint; the other columns are unconstrained.",
+        "No extra tables or relationships are added.",
+        "The output is valid D2 and renders correctly.",
       );
-      expect(canvas.content, "Canvas should contain users table").toContain(
-        "users"
-      );
-      expect(canvas.content, "Canvas should contain id column with int type").toContain(
-        "id"
-      );
-      expect(canvas.content, "Canvas should contain int type").toContain(
-        "int"
-      );
-      expect(canvas.content, "Canvas should contain primary_key constraint").toContain(
-        "primary_key"
-      );
-      expect(canvas.content, "Canvas should contain name column").toContain(
-        "name"
-      );
-      expect(canvas.content, "Canvas should contain string type").toContain(
-        "string"
-      );
-      expect(canvas.content, "Canvas should contain email column").toContain(
-        "email"
-      );
-      expect(canvas.content, "Canvas should contain created_at column").toContain(
-        "created_at"
-      );
-      expect(canvas.content, "Canvas should contain timestamp type").toContain(
-        "timestamp"
-      );
-      expect(
-        canvas.content.trim().length,
-        "Canvas should not be empty",
-      ).toBeGreaterThan(0);
     },
   );
 
@@ -118,7 +87,7 @@ describe("SQL Tables and Entity-Relationship Diagrams", () => {
   conversation(
     "Table with multiple constraints",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       // ACTION: Send message to agent
       await agent.send(
         "Create a SQL table diagram for a products table with the following columns:\n" +
@@ -130,53 +99,13 @@ describe("SQL Tables and Entity-Relationship Diagrams", () => {
           "- in_stock column of type boolean with no constraints"
       );
 
-      // OBSERVATION: Access canvas state
-      const canvas = agent.canvas;
-
-      // ASSERTION: Use custom expect for recording
-      expect(canvas.content, "Canvas should contain sql_table shape").toContain(
-        "sql_table"
+      agent.criteria(
+        "The diagram includes a products table rendered as an SQL table shape.",
+        "Columns appear with the requested types: product_id (int, primary key), sku (string, unique), name (string), category_id (int, foreign key), price (decimal), in_stock (boolean).",
+        "Constraints match the request and are only applied to product_id, sku, and category_id.",
+        "No additional tables or relationships are introduced.",
+        "The output is valid D2 and renders correctly.",
       );
-      expect(canvas.content, "Canvas should contain products table").toContain(
-        "products"
-      );
-      expect(canvas.content, "Canvas should contain product_id column").toContain(
-        "product_id"
-      );
-      expect(canvas.content, "Canvas should contain primary_key constraint").toContain(
-        "primary_key"
-      );
-      expect(canvas.content, "Canvas should contain sku column").toContain(
-        "sku"
-      );
-      expect(canvas.content, "Canvas should contain unique constraint").toContain(
-        "unique"
-      );
-      expect(canvas.content, "Canvas should contain name column").toContain(
-        "name"
-      );
-      expect(canvas.content, "Canvas should contain category_id column").toContain(
-        "category_id"
-      );
-      expect(canvas.content, "Canvas should contain foreign_key constraint").toContain(
-        "foreign_key"
-      );
-      expect(canvas.content, "Canvas should contain price column").toContain(
-        "price"
-      );
-      expect(canvas.content, "Canvas should contain decimal type").toContain(
-        "decimal"
-      );
-      expect(canvas.content, "Canvas should contain in_stock column").toContain(
-        "in_stock"
-      );
-      expect(canvas.content, "Canvas should contain boolean type").toContain(
-        "boolean"
-      );
-      expect(
-        canvas.content.trim().length,
-        "Canvas should not be empty",
-      ).toBeGreaterThan(0);
     },
   );
 
@@ -189,7 +118,7 @@ describe("SQL Tables and Entity-Relationship Diagrams", () => {
   conversation(
     "Multiple tables with foreign key relationships",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       // ACTION: Send message to agent
       await agent.send(
         "Create an entity-relationship diagram for a blog database with the following tables and columns:\n\n" +
@@ -215,71 +144,14 @@ describe("SQL Tables and Entity-Relationship Diagrams", () => {
           "- comments.author_id connects to authors.author_id"
       );
 
-      // OBSERVATION: Access canvas state
-      const canvas = agent.canvas;
-
-      // ASSERTION: Use custom expect for recording
-      expect(canvas.content, "Canvas should contain sql_table shape").toContain(
-        "sql_table"
+      agent.criteria(
+        "The diagram contains three SQL tables named authors, posts, and comments.",
+        "Authors includes author_id (int, primary key), name (string), and email (string, unique).",
+        "Posts includes post_id (int, primary key), title (string), content (text), author_id (int, foreign key), and created_at (timestamp).",
+        "Comments includes comment_id (int, primary key), post_id (int, foreign key), author_id (int, foreign key), content (text), and created_at (timestamp).",
+        "Foreign key connections link posts.author_id to authors.author_id, comments.post_id to posts.post_id, and comments.author_id to authors.author_id.",
+        "No extra tables or relationships are added and the output renders as valid D2.",
       );
-
-      // Check authors table
-      expect(canvas.content, "Canvas should contain authors table").toContain(
-        "authors"
-      );
-      expect(canvas.content, "Canvas should contain author_id column").toContain(
-        "author_id"
-      );
-      expect(canvas.content, "Canvas should contain primary_key constraint").toContain(
-        "primary_key"
-      );
-      expect(canvas.content, "Canvas should contain unique constraint").toContain(
-        "unique"
-      );
-
-      // Check posts table
-      expect(canvas.content, "Canvas should contain posts table").toContain(
-        "posts"
-      );
-      expect(canvas.content, "Canvas should contain post_id column").toContain(
-        "post_id"
-      );
-      expect(canvas.content, "Canvas should contain title column").toContain(
-        "title"
-      );
-      expect(canvas.content, "Canvas should contain content column").toContain(
-        "content"
-      );
-      expect(canvas.content, "Canvas should contain text type").toContain(
-        "text"
-      );
-      expect(canvas.content, "Canvas should contain created_at column").toContain(
-        "created_at"
-      );
-      expect(canvas.content, "Canvas should contain timestamp type").toContain(
-        "timestamp"
-      );
-
-      // Check comments table
-      expect(canvas.content, "Canvas should contain comments table").toContain(
-        "comments"
-      );
-      expect(canvas.content, "Canvas should contain comment_id column").toContain(
-        "comment_id"
-      );
-      expect(canvas.content, "Canvas should contain foreign_key constraint").toContain(
-        "foreign_key"
-      );
-
-      // Check foreign key connections
-      // TODO: Add assertions for foreign key connections (posts.author_id -> authors.author_id)
-      // TODO: Add assertions for foreign key connections (comments.post_id -> posts.post_id)
-      // TODO: Add assertions for foreign key connections (comments.author_id -> authors.author_id)
-
-      expect(
-        canvas.content.trim().length,
-        "Canvas should not be empty",
-      ).toBeGreaterThan(0);
     },
   );
 });

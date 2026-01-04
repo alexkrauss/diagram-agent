@@ -52,7 +52,7 @@ describe("Component Diagrams Benchmark", () => {
   conversation(
     "Simple 3-Tier Architecture",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         "Create a 3-tier architecture diagram with exactly three shapes:\n" +
         "- A shape labeled \"Frontend\"\n" +
@@ -64,32 +64,13 @@ describe("Component Diagrams Benchmark", () => {
         "All shapes should be rectangles."
       );
 
-      const canvas = agent.canvas;
-
-      // Check that all three shapes exist with correct labels
-      expect(canvas.content, "Canvas should contain Frontend").toContain("Frontend");
-      expect(canvas.content, "Canvas should contain Backend").toContain("Backend");
-      expect(canvas.content, "Canvas should contain Database").toContain("Database");
-
-      // Check connections exist (using D2 arrow syntax)
-      expect(canvas.content, "Connection from Frontend to Backend should exist").toMatch(
-        /Frontend.*->.*Backend/s
+      agent.criteria(
+        "The diagram contains exactly three rectangle shapes labeled Frontend, Backend, and Database.",
+        "A directed connection runs from Frontend to Backend labeled HTTP requests.",
+        "A directed connection runs from Backend to Database labeled SQL queries.",
+        "No extra shapes or connections appear beyond the 3-tier flow.",
+        "The output is valid D2 and renders correctly.",
       );
-      expect(canvas.content, "Connection from Backend to Database should exist").toMatch(
-        /Backend.*->.*Database/s
-      );
-
-      // Check connection labels
-      expect(canvas.content, "Frontend to Backend connection should have label").toContain(
-        "HTTP requests"
-      );
-      expect(canvas.content, "Backend to Database connection should have label").toContain(
-        "SQL queries"
-      );
-
-      // TODO: Add assertions for:
-      // - All shapes are rectangles (shape: rectangle)
-      // - Connections are unidirectional (not bidirectional <->)
     },
   );
 
@@ -100,7 +81,7 @@ describe("Component Diagrams Benchmark", () => {
   conversation(
     "Microservices Architecture",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         "Create a microservices architecture diagram with the following structure:\n\n" +
         "Top-level shapes:\n" +
@@ -126,49 +107,16 @@ describe("Component Diagrams Benchmark", () => {
         "- From Order Service to Shared Cache with label \"read/write\""
       );
 
-      const canvas = agent.canvas;
-
-      // Check containers exist
-      expect(canvas.content, "Canvas should contain Services container").toContain("Services");
-      expect(canvas.content, "Canvas should contain Data Layer container").toContain("Data Layer");
-
-      // Check top-level shapes
-      expect(canvas.content, "Canvas should contain API Gateway").toContain("API Gateway");
-      expect(canvas.content, "Canvas should contain Payment Gateway").toContain("Payment Gateway");
-
-      // Check Services container children
-      expect(canvas.content, "Canvas should contain User Service").toContain("User Service");
-      expect(canvas.content, "Canvas should contain Product Service").toContain("Product Service");
-      expect(canvas.content, "Canvas should contain Order Service").toContain("Order Service");
-
-      // Check Data Layer container children
-      expect(canvas.content, "Canvas should contain User Database").toContain("User Database");
-      expect(canvas.content, "Canvas should contain Product Database").toContain("Product Database");
-      expect(canvas.content, "Canvas should contain Shared Cache").toContain("Shared Cache");
-
-      // Check key connections exist
-      expect(canvas.content, "Connection from API Gateway to User Service should exist").toMatch(
-        /API Gateway.*->.*User Service/s
+      agent.criteria(
+        "The diagram includes top-level API Gateway and Payment Gateway shapes.",
+        "A Services container holds User Service, Product Service, and Order Service.",
+        "A Data Layer container holds User Database, Product Database, and Shared Cache.",
+        "API Gateway routes to each service with labeled route connections.",
+        "User Service connects to User Database with query, Product Service connects to Product Database with query, and Order Service connects to Payment Gateway with process payment.",
+        "All three services connect to the Shared Cache with labeled read/write connections.",
+        "The container nesting and connection directionality match the requested architecture, with no extra elements.",
+        "The diagram renders as valid D2.",
       );
-      expect(canvas.content, "Connection from User Service to User Database should exist").toMatch(
-        /User Service.*->.*User Database/s
-      );
-      expect(canvas.content, "Connection from Order Service to Payment Gateway should exist").toMatch(
-        /Order Service.*->.*Payment Gateway/s
-      );
-
-      // Check connection labels
-      expect(canvas.content, "Should contain route label").toContain("route");
-      expect(canvas.content, "Should contain query label").toContain("query");
-      expect(canvas.content, "Should contain process payment label").toContain("process payment");
-      expect(canvas.content, "Should contain read/write label").toContain("read/write");
-
-      // TODO: Add assertions for:
-      // - Containers have exactly the right number of children (3 each)
-      // - All specified connections are present (9 total)
-      // - Shapes are at correct nesting levels (top-level vs inside containers)
-      // - All connections are unidirectional
-      // - All connection labels are correctly placed
     },
   );
 
@@ -179,7 +127,7 @@ describe("Component Diagrams Benchmark", () => {
   conversation(
     "Cloud Architecture with Multi-Region Deployment",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         "Create a cloud architecture diagram with the following structure:\n\n" +
         "Top-level shapes:\n" +
@@ -208,58 +156,16 @@ describe("Component Diagrams Benchmark", () => {
         "- From Load Balancer in EU-West Region to Monitoring Service with label \"metrics\""
       );
 
-      const canvas = agent.canvas;
-
-      // Check containers exist
-      expect(canvas.content, "Canvas should contain US-East Region container").toContain("US-East Region");
-      expect(canvas.content, "Canvas should contain EU-West Region container").toContain("EU-West Region");
-      expect(canvas.content, "Canvas should contain Data Center container").toContain("Data Center");
-
-      // Check top-level shapes
-      expect(canvas.content, "Canvas should contain CDN").toContain("CDN");
-      expect(canvas.content, "Canvas should contain Monitoring Service").toContain("Monitoring Service");
-
-      // Check US-East Region children
-      expect(canvas.content, "Canvas should contain Load Balancer").toContain("Load Balancer");
-      expect(canvas.content, "Canvas should contain Web Cluster").toContain("Web Cluster");
-      expect(canvas.content, "Canvas should contain App Cluster").toContain("App Cluster");
-
-      // Check Data Center child
-      expect(canvas.content, "Canvas should contain Database").toContain("Database");
-
-      // Check key connections exist
-      expect(canvas.content, "Connection from CDN to Load Balancer should exist").toMatch(
-        /CDN.*->.*Load Balancer/s
+      agent.criteria(
+        "The diagram includes top-level CDN and Monitoring Service shapes.",
+        "US-East Region and EU-West Region containers each contain Load Balancer, Web Cluster, and App Cluster shapes.",
+        "A Data Center container contains the Database shape.",
+        "Connections exist from CDN to each region's Load Balancer labeled route traffic.",
+        "Within each region, Load Balancer connects to Web Cluster (forward) and Web Cluster to App Cluster (API call).",
+        "Each App Cluster connects to the shared Database with SQL query labels.",
+        "Each region's Load Balancer connects to Monitoring Service with metrics labels.",
+        "The two region containers mirror each other and the diagram renders as valid D2.",
       );
-      expect(canvas.content, "Connection from Load Balancer to Web Cluster should exist").toMatch(
-        /Load Balancer.*->.*Web Cluster/s
-      );
-      expect(canvas.content, "Connection from Web Cluster to App Cluster should exist").toMatch(
-        /Web Cluster.*->.*App Cluster/s
-      );
-      expect(canvas.content, "Connection from App Cluster to Database should exist").toMatch(
-        /App Cluster.*->.*Database/s
-      );
-      expect(canvas.content, "Connection from Load Balancer to Monitoring Service should exist").toMatch(
-        /Load Balancer.*->.*Monitoring Service/s
-      );
-
-      // Check connection labels
-      expect(canvas.content, "Should contain route traffic label").toContain("route traffic");
-      expect(canvas.content, "Should contain forward label").toContain("forward");
-      expect(canvas.content, "Should contain API call label").toContain("API call");
-      expect(canvas.content, "Should contain SQL query label").toContain("SQL query");
-      expect(canvas.content, "Should contain metrics label").toContain("metrics");
-
-      // TODO: Add assertions for:
-      // - Both regional containers have exactly 3 children each
-      // - Data Center has exactly 1 child
-      // - All 10 specified connections are present
-      // - Both regional containers have identical internal structure
-      // - Both app clusters connect to the same database
-      // - Both load balancers connect to the same monitoring service
-      // - All connections are unidirectional
-      // - All connection labels are correctly placed
     },
   );
 });

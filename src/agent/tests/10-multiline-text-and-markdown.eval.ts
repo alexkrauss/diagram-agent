@@ -46,7 +46,7 @@ describe("Benchmark: Multiline Text and Markdown", () => {
   conversation(
     "Standalone Markdown Text Block",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         `Create a diagram with a standalone markdown text block with the following content:
 
@@ -60,28 +60,12 @@ Follow these **important** steps:
 `,
       );
 
-      const canvas = agent.canvas;
-
-      expect(
-        canvas.content,
-        "Canvas should contain header 'Getting Started'",
-      ).toContain("Getting Started");
-      expect(
-        canvas.content,
-        "Canvas should contain bold 'important'",
-      ).toContain("important");
-      expect(
-        canvas.content,
-        "Canvas should contain 'Install dependencies'",
-      ).toContain("Install dependencies");
-      expect(
-        canvas.content,
-        "Canvas should contain 'Run the build'",
-      ).toContain("Run the build");
-      expect(
-        canvas.content,
-        "Canvas should contain 'Start the server'",
-      ).toContain("Start the server");
+      agent.criteria(
+        "A standalone markdown text block is present with the Getting Started header.",
+        "The block includes the bold emphasis on important and the three bullet steps for install, build, and start.",
+        "Formatting is preserved as markdown rather than converted to plain prose.",
+        "The diagram renders as valid D2.",
+      );
     },
   );
 
@@ -91,7 +75,7 @@ Follow these **important** steps:
   conversation(
     "Shape with Markdown Label",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         `Create a shape labeled 'warning' that has a markdown label with the following content:
 
@@ -101,20 +85,12 @@ Follow these **important** steps:
 `,
       );
 
-      const canvas = agent.canvas;
-
-      expect(
-        canvas.content,
-        "Canvas should contain 'warning' shape",
-      ).toContain("warning");
-      expect(
-        canvas.content,
-        "Canvas should contain 'Warning:'",
-      ).toContain("Warning:");
-      expect(
-        canvas.content,
-        "Canvas should contain 'critical'",
-      ).toContain("critical");
+      agent.criteria(
+        "A shape labeled warning exists with a markdown label.",
+        "The label includes bold Warning: and italic emphasis on critical.",
+        "The markdown is preserved as inline formatting.",
+        "The diagram renders as valid D2.",
+      );
     },
   );
 
@@ -124,7 +100,7 @@ Follow these **important** steps:
   conversation(
     "Code Block with JavaScript",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         `Create a code block showing JavaScript syntax highlighting with this exact function:
 
@@ -136,26 +112,12 @@ function calculateSum(arr) {
 `,
       );
 
-      const canvas = agent.canvas;
-
-      expect(
-        canvas.content,
-        "Canvas should contain function name 'calculateSum'",
-      ).toContain("calculateSum");
-      expect(
-        canvas.content,
-        "Canvas should contain parameter 'arr'",
-      ).toContain("arr");
-      expect(
-        canvas.content,
-        "Canvas should contain arrow function syntax",
-      ).toContain("=>");
-      expect(
-        canvas.content,
-        "Canvas should contain 'reduce' method",
-      ).toContain("reduce");
-      // TODO: Add assertions for proper indentation preservation
-      // TODO: Add assertions for JavaScript syntax highlighting indication
+      agent.criteria(
+        "A JavaScript code block is shown with the calculateSum function exactly as specified.",
+        "The code block preserves the reduce call, arrow function syntax, and parameter names.",
+        "The formatting remains a code block with JavaScript context.",
+        "The diagram renders as valid D2.",
+      );
     },
   );
 
@@ -165,7 +127,7 @@ function calculateSum(arr) {
   conversation(
     "Code Block with Python",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         `Add a Python code snippet to the diagram with this exact function:
 
@@ -179,26 +141,12 @@ def process_data(items):
 `,
       );
 
-      const canvas = agent.canvas;
-
-      expect(
-        canvas.content,
-        "Canvas should contain function name 'process_data'",
-      ).toContain("process_data");
-      expect(
-        canvas.content,
-        "Canvas should contain for loop",
-      ).toContain("for item in items");
-      expect(
-        canvas.content,
-        "Canvas should contain append operation",
-      ).toContain("append");
-      expect(
-        canvas.content,
-        "Canvas should contain 'item * 2'",
-      ).toContain("item * 2");
-      // TODO: Add assertions for Python indentation preservation
-      // TODO: Add assertions for Python syntax highlighting indication
+      agent.criteria(
+        "A Python code block shows the process_data function exactly as specified.",
+        "The code includes the for loop, append call, and item * 2 operation.",
+        "Indentation and code block formatting are preserved.",
+        "The diagram renders as valid D2.",
+      );
     },
   );
 
@@ -208,7 +156,7 @@ def process_data(items):
   conversation(
     "Code Block with SQL",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         `Create a code block with this SQL query:
 
@@ -221,37 +169,12 @@ WHERE orders.total > 100
 `,
       );
 
-      const canvas = agent.canvas;
-
-      expect(
-        canvas.content,
-        "Canvas should contain SELECT keyword",
-      ).toContain("SELECT");
-      expect(
-        canvas.content,
-        "Canvas should contain FROM keyword",
-      ).toContain("FROM");
-      expect(
-        canvas.content,
-        "Canvas should contain JOIN keyword",
-      ).toContain("JOIN");
-      expect(
-        canvas.content,
-        "Canvas should contain WHERE keyword",
-      ).toContain("WHERE");
-      expect(
-        canvas.content,
-        "Canvas should contain column reference 'users.name'",
-      ).toContain("users.name");
-      expect(
-        canvas.content,
-        "Canvas should contain column reference 'orders.total'",
-      ).toContain("orders.total");
-      expect(
-        canvas.content,
-        "Canvas should contain JOIN condition",
-      ).toContain("users.id = orders.user_id");
-      // TODO: Add assertions for SQL syntax highlighting indication
+      agent.criteria(
+        "An SQL code block contains the SELECT, FROM, JOIN, and WHERE query exactly as specified.",
+        "The query references users.name, orders.total, and the join condition users.id = orders.user_id.",
+        "The formatting remains a code block with SQL context.",
+        "The diagram renders as valid D2.",
+      );
     },
   );
 
@@ -261,7 +184,7 @@ WHERE orders.total > 100
   conversation(
     "Mixed Markdown with Multiple Formatting Types",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         `Create a text block with markdown containing this exact content:
 
@@ -280,42 +203,13 @@ This guide explains **how to setup** the environment:
 `,
       );
 
-      const canvas = agent.canvas;
-
-      expect(
-        canvas.content,
-        "Canvas should contain header 'Setup Guide'",
-      ).toContain("Setup Guide");
-      expect(
-        canvas.content,
-        "Canvas should contain bold text 'how to setup'",
-      ).toContain("how to setup");
-      expect(
-        canvas.content,
-        "Canvas should contain 'Node.js'",
-      ).toContain("Node.js");
-      expect(
-        canvas.content,
-        "Canvas should contain inline code '18+'",
-      ).toContain("18+");
-      expect(
-        canvas.content,
-        "Canvas should contain inline code 'npm install'",
-      ).toContain("npm install");
-      expect(
-        canvas.content,
-        "Canvas should contain inline code '.env'",
-      ).toContain(".env");
-      expect(
-        canvas.content,
-        "Canvas should contain inline code 'npm start'",
-      ).toContain("npm start");
-      expect(
-        canvas.content,
-        "Canvas should contain bold 'Note:'",
-      ).toContain("Note:");
-      // TODO: Add assertions for numbered list structure (4 items)
-      // TODO: Add assertions for empty line preservation
+      agent.criteria(
+        "The markdown block includes the Setup Guide header and preserves bold, italic, and inline code formatting.",
+        "The numbered list contains the four setup steps with the specified inline code snippets.",
+        "The Note line appears in bold and the content matches the request.",
+        "Formatting remains markdown with line breaks preserved.",
+        "The diagram renders as valid D2.",
+      );
     },
   );
 
@@ -325,7 +219,7 @@ This guide explains **how to setup** the environment:
   conversation(
     "Code Block with Special Characters",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         `Create a TypeScript code block with this exact code:
 
@@ -336,33 +230,12 @@ const check = (x > 5) || (y < 10);
 `,
       );
 
-      const canvas = agent.canvas;
-
-      expect(
-        canvas.content,
-        "Canvas should contain union type syntax with pipe",
-      ).toContain("Success | Error");
-      expect(
-        canvas.content,
-        "Canvas should contain OR operator",
-      ).toContain("||");
-      expect(
-        canvas.content,
-        "Canvas should contain greater than operator",
-      ).toContain(">");
-      expect(
-        canvas.content,
-        "Canvas should contain less than operator",
-      ).toContain("<");
-      expect(
-        canvas.content,
-        "Canvas should contain 'type Result'",
-      ).toContain("type Result");
-      expect(
-        canvas.content,
-        "Canvas should contain 'const check'",
-      ).toContain("const check");
-      // TODO: Add assertions for TypeScript syntax highlighting indication
+      agent.criteria(
+        "A TypeScript code block contains the Result union type and the check expression exactly as specified.",
+        "Special characters (|, ||, >, <) are preserved in the code block.",
+        "The block is formatted as TypeScript with code block styling.",
+        "The diagram renders as valid D2.",
+      );
     },
   );
 
@@ -372,7 +245,7 @@ const check = (x > 5) || (y < 10);
   conversation(
     "LaTeX Code Block",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         `Create a code block with these LaTeX formulas:
 
@@ -384,23 +257,12 @@ E = mc^2
 `,
       );
 
-      const canvas = agent.canvas;
-
-      expect(
-        canvas.content,
-        "Canvas should contain Einstein formula",
-      ).toContain("E = mc^2");
-      expect(
-        canvas.content,
-        "Canvas should contain summation notation",
-      ).toContain("\\sum");
-      expect(
-        canvas.content,
-        "Canvas should contain fraction notation",
-      ).toContain("\\frac");
-      // TODO: Add assertions for LaTeX commands preservation
-      // TODO: Add assertions for empty line between formulas
-      // TODO: Add assertions for LaTeX syntax highlighting indication
+      agent.criteria(
+        "A LaTeX code block contains the E = mc^2 formula and the summation equation.",
+        "LaTeX commands like \\sum and \\frac are preserved.",
+        "The empty line between formulas is maintained.",
+        "The diagram renders as valid D2.",
+      );
     },
   );
 
@@ -410,7 +272,7 @@ E = mc^2
   conversation(
     "Nested Markdown in Multiple Shapes",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         `Create a diagram with three text shapes:
 
@@ -438,47 +300,13 @@ Third shape with this markdown:
 `,
       );
 
-      const canvas = agent.canvas;
-
-      expect(
-        canvas.content,
-        "Canvas should contain 'API Documentation'",
-      ).toContain("API Documentation");
-      expect(
-        canvas.content,
-        "Canvas should contain function 'fetchData'",
-      ).toContain("fetchData");
-      expect(
-        canvas.content,
-        "Canvas should contain 'async' keyword",
-      ).toContain("async");
-      expect(
-        canvas.content,
-        "Canvas should contain 'await' keyword",
-      ).toContain("await");
-      expect(
-        canvas.content,
-        "Canvas should contain 'fetch'",
-      ).toContain("fetch");
-      expect(
-        canvas.content,
-        "Canvas should contain 'Important:'",
-      ).toContain("Important:");
-      expect(
-        canvas.content,
-        "Canvas should contain 'Check for null values'",
-      ).toContain("Check for null values");
-      expect(
-        canvas.content,
-        "Canvas should contain 'Sanitize strings'",
-      ).toContain("Sanitize strings");
-      expect(
-        canvas.content,
-        "Canvas should contain 'Validate data types'",
-      ).toContain("Validate data types");
-      // TODO: Add assertions for three separate text elements
-      // TODO: Add assertions for blockquote syntax (starts with >)
-      // TODO: Add assertions for JavaScript syntax highlighting indication
+      agent.criteria(
+        "Three separate text shapes are present: a markdown header for API Documentation, a JavaScript code block for fetchData, and a markdown blockquote with a checklist.",
+        "The JavaScript block preserves async/await usage and the fetch call.",
+        "The markdown blockquote includes the Important note and the three bullet items.",
+        "Markdown and code formatting are preserved across all shapes.",
+        "The diagram renders as valid D2.",
+      );
     },
   );
 });

@@ -53,7 +53,7 @@ describe("Sequence Diagrams Benchmark", () => {
   conversation(
     "Simple actor-to-actor messages",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         "Create a sequence diagram showing the following conversation:\n" +
           '- Two actors: "Alice" and "Bob"\n' +
@@ -63,36 +63,13 @@ describe("Sequence Diagrams Benchmark", () => {
           "Messages must appear in this exact order."
       );
 
-      const canvas = agent.canvas;
-
-      // Check sequence diagram setup
-      expect(
-        canvas.content,
-        "Canvas should contain shape: sequence_diagram"
-      ).toMatch(/shape:\s*sequence_diagram/);
-
-      // Check actors exist
-      expect(canvas.content, "Canvas should contain actor Alice").toContain(
-        "Alice"
+      agent.criteria(
+        "The output is a sequence diagram with actors Alice and Bob.",
+        "Two messages are shown in the specified order: Alice to Bob with the well-adjusted question, then Bob to Alice with the bridge or golf response.",
+        "Message directionality matches the conversation flow.",
+        "No extra actors or messages are added.",
+        "The diagram renders as valid D2.",
       );
-      expect(canvas.content, "Canvas should contain actor Bob").toContain(
-        "Bob"
-      );
-
-      // Check messages exist with labels
-      expect(
-        canvas.content,
-        'Canvas should contain message label "What does it mean to be well-adjusted?"'
-      ).toContain("What does it mean to be well-adjusted?");
-      expect(
-        canvas.content,
-        'Canvas should contain message label "The ability to play bridge or golf as if they were games."'
-      ).toContain(
-        "The ability to play bridge or golf as if they were games."
-      );
-
-      // TODO: Add assertions for message flow direction (Alice -> Bob, Bob -> Alice)
-      // TODO: Add assertions for message ordering (temporal sequence)
     }
   );
 
@@ -104,7 +81,7 @@ describe("Sequence Diagrams Benchmark", () => {
   conversation(
     "Sequence diagram with spans (activation boxes)",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         "Create a sequence diagram showing this exact interaction:\n" +
           '- Three actors: "Alice", "Bob", and "Charlie"\n' +
@@ -118,46 +95,14 @@ describe("Sequence Diagrams Benchmark", () => {
           "Use spans to show Bob's activation period during messages 2 and 3."
       );
 
-      const canvas = agent.canvas;
-
-      // Check sequence diagram setup
-      expect(
-        canvas.content,
-        "Canvas should contain shape: sequence_diagram"
-      ).toMatch(/shape:\s*sequence_diagram/);
-
-      // Check actors exist
-      expect(canvas.content, "Canvas should contain actor Alice").toContain(
-        "Alice"
+      agent.criteria(
+        "The diagram is a UML sequence diagram.",
+        "The diagram has actors Alice, Bob, and Charlie.",
+        "Four messages appear in order: Alice to Bob (Send request), Bob to Charlie (Query data), Charlie to Bob (Return results), and Bob to Alice (Send response).",
+        "Bob shows an activation span covering the middle two messages (Query data and Return results).",
+        "Message directions and ordering match the prompt.",
+        "The output renders as valid D2.",
       );
-      expect(canvas.content, "Canvas should contain actor Bob").toContain(
-        "Bob"
-      );
-      expect(canvas.content, "Canvas should contain actor Charlie").toContain(
-        "Charlie"
-      );
-
-      // Check message labels
-      expect(
-        canvas.content,
-        'Canvas should contain message label "Send request"'
-      ).toContain("Send request");
-      expect(
-        canvas.content,
-        'Canvas should contain message label "Query data"'
-      ).toContain("Query data");
-      expect(
-        canvas.content,
-        'Canvas should contain message label "Return results"'
-      ).toContain("Return results");
-      expect(
-        canvas.content,
-        'Canvas should contain message label "Send response"'
-      ).toContain("Send response");
-
-      // TODO: Add assertions for activation spans/periods showing Bob as active during messages 2 and 3
-      // TODO: Add assertions for message flow directions
-      // TODO: Add assertions for message ordering (1→2→3→4)
     }
   );
 
@@ -169,7 +114,7 @@ describe("Sequence Diagrams Benchmark", () => {
   conversation(
     "Sequence diagram with groups",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         "Create a sequence diagram with the following structure:\n" +
           '- Two actors: "Alice" and "Bob"\n' +
@@ -185,61 +130,15 @@ describe("Sequence Diagrams Benchmark", () => {
           "Groups must appear in this exact order. All messages within each group must maintain their specified order."
       );
 
-      const canvas = agent.canvas;
-
-      // Check sequence diagram setup
-      expect(
-        canvas.content,
-        "Canvas should contain shape: sequence_diagram"
-      ).toMatch(/shape:\s*sequence_diagram/);
-
-      // Check actors exist
-      expect(canvas.content, "Canvas should contain actor Alice").toContain(
-        "Alice"
+      agent.criteria(
+        "The output is a UML sequence diagram with Alice and Bob as actors.",
+        "Three groups appear in order: Greeting phase, Business phase, Goodbye phase.",
+        "Greeting phase contains Alice to Bob 'Hello' followed by Bob to Alice 'Hi there!'.",
+        "Business phase contains Alice to Bob 'How's the project?' followed by Bob to Alice 'Going well!'.",
+        "Goodbye phase contains Bob to Alice 'Goodbye'.",
+        "Group boundaries are visible and message ordering is preserved.",
+        "The diagram renders as valid D2.",
       );
-      expect(canvas.content, "Canvas should contain actor Bob").toContain(
-        "Bob"
-      );
-
-      // Check group labels
-      expect(
-        canvas.content,
-        'Canvas should contain group label "Greeting phase"'
-      ).toContain("Greeting phase");
-      expect(
-        canvas.content,
-        'Canvas should contain group label "Business phase"'
-      ).toContain("Business phase");
-      expect(
-        canvas.content,
-        'Canvas should contain group label "Goodbye phase"'
-      ).toContain("Goodbye phase");
-
-      // Check message labels
-      expect(
-        canvas.content,
-        'Canvas should contain message label "Hello"'
-      ).toContain("Hello");
-      expect(
-        canvas.content,
-        'Canvas should contain message label "Hi there!"'
-      ).toContain("Hi there!");
-      expect(
-        canvas.content,
-        'Canvas should contain message label "How\'s the project?"'
-      ).toContain("How's the project?");
-      expect(
-        canvas.content,
-        'Canvas should contain message label "Going well!"'
-      ).toContain("Going well!");
-      expect(
-        canvas.content,
-        'Canvas should contain message label "Goodbye"'
-      ).toContain("Goodbye");
-
-      // TODO: Add assertions for group structure (messages inside correct groups)
-      // TODO: Add assertions for group ordering (Greeting → Business → Goodbye)
-      // TODO: Add assertions for message flow directions within groups
     }
   );
 
@@ -251,7 +150,7 @@ describe("Sequence Diagrams Benchmark", () => {
   conversation(
     "Complex sequence with self-messages, notes, and mixed features",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         "Create a sequence diagram for an e-commerce checkout flow with this exact sequence:\n" +
           '- Three actors: "Customer", "Website", and "PaymentService"\n' +
@@ -266,63 +165,14 @@ describe("Sequence Diagrams Benchmark", () => {
           "All steps must appear in this exact order. The note in step 4 must appear between steps 3 and 5. The note in step 7 must appear after step 6."
       );
 
-      const canvas = agent.canvas;
-
-      // Check sequence diagram setup
-      expect(
-        canvas.content,
-        "Canvas should contain shape: sequence_diagram"
-      ).toMatch(/shape:\s*sequence_diagram/);
-
-      // Check actors exist
-      expect(canvas.content, "Canvas should contain actor Customer").toContain(
-        "Customer"
+      agent.criteria(
+        "The diagram is a UML sequence diagram with Customer, Website, and PaymentService actors.",
+        "Messages appear in order: Customer to Website (Submit order), Website to itself (Validate order), Website to PaymentService (Request payment), PaymentService to Website (Payment approved), Website to Customer (Order confirmed).",
+        "A note on Customer says 'Waiting for confirmation' and appears between Request payment and Payment approved.",
+        "A note on Website says 'Order complete' and appears after Order confirmed.",
+        "The Website self-message is visually distinct as a self-call.",
+        "No extra actors or messages are added and the diagram renders as valid D2.",
       );
-      expect(canvas.content, "Canvas should contain actor Website").toContain(
-        "Website"
-      );
-      expect(
-        canvas.content,
-        "Canvas should contain actor PaymentService"
-      ).toContain("PaymentService");
-
-      // Check message labels
-      expect(
-        canvas.content,
-        'Canvas should contain message label "Submit order"'
-      ).toContain("Submit order");
-      expect(
-        canvas.content,
-        'Canvas should contain message label "Validate order"'
-      ).toContain("Validate order");
-      expect(
-        canvas.content,
-        'Canvas should contain message label "Request payment"'
-      ).toContain("Request payment");
-      expect(
-        canvas.content,
-        'Canvas should contain message label "Payment approved"'
-      ).toContain("Payment approved");
-      expect(
-        canvas.content,
-        'Canvas should contain message label "Order confirmed"'
-      ).toContain("Order confirmed");
-
-      // Check notes
-      expect(
-        canvas.content,
-        'Canvas should contain note "Waiting for confirmation"'
-      ).toContain("Waiting for confirmation");
-      expect(
-        canvas.content,
-        'Canvas should contain note "Order complete"'
-      ).toContain("Order complete");
-
-      // TODO: Add assertions for self-message (Website -> Website)
-      // TODO: Add assertions for note placement (note on Customer appears between steps 3 and 5)
-      // TODO: Add assertions for note placement (note on Website appears after step 6)
-      // TODO: Add assertions for message ordering (all steps in correct temporal sequence)
-      // TODO: Add assertions for message flow directions
     }
   );
 });

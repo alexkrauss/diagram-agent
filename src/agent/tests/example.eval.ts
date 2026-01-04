@@ -52,24 +52,15 @@ describe("DiagramAgent - Example Conversations", () => {
   conversation(
     "Create simple diagram",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       // ACTION: Send message to agent
       await agent.send("Create a diagram with two boxes: Frontend and Backend");
 
-      // OBSERVATION: Access canvas state
-      const canvas = agent.canvas;
-
-      // ASSERTION: Use custom expect for recording
-      expect(canvas.content, "Canvas should contain Frontend").toContain(
-        "Frontend",
+      agent.criteria(
+        "The diagram includes two boxes labeled Frontend and Backend.",
+        "No extra shapes or connections are introduced.",
+        "The output is valid D2 and renders correctly.",
       );
-      expect(canvas.content, "Canvas should contain Backend").toContain(
-        "Backend",
-      );
-      expect(
-        canvas.content.trim().length,
-        "Canvas should not be empty",
-      ).toBeGreaterThan(0);
     },
   );
 
@@ -80,49 +71,22 @@ describe("DiagramAgent - Example Conversations", () => {
   conversation(
     "Build architecture incrementally",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       // Turn 1: Create initial element
       await agent.send("Create a box called Web Server");
-
-      expect(
-        agent.canvas.content,
-        "Canvas should contain Web Server",
-      ).toContain("Web Server");
-
-      const userMessages1 = agent.conversation.messages.filter(
-        (m) => m.role === "user",
-      );
-      expect(userMessages1.length, "Should have 1 user message").toBe(1);
 
       // Turn 2: Add connected element
       await agent.send("Add a Database box and connect it to the Web Server");
 
-      expect(
-        agent.canvas.content,
-        "Canvas should still contain Web Server",
-      ).toContain("Web Server");
-      expect(agent.canvas.content, "Canvas should contain Database").toContain(
-        "Database",
-      );
-
-      const userMessages2 = agent.conversation.messages.filter(
-        (m) => m.role === "user",
-      );
-      expect(userMessages2.length, "Should have 2 user messages").toBe(2);
-
       // Turn 3: Add another element
       await agent.send("Add a Load Balancer in front of the Web Server");
 
-      expect(
-        agent.canvas.content,
-        "Canvas should contain Load Balancer",
-      ).toContain("Load Balancer");
-
-      // Validate conversation state
-      const userMessages3 = agent.conversation.messages.filter(
-        (m) => m.role === "user",
+      agent.criteria(
+        "The final diagram includes Web Server, Database, and Load Balancer.",
+        "Database is connected to the Web Server, and the Load Balancer sits in front of the Web Server.",
+        "The diagram accumulates elements across turns without losing earlier shapes.",
+        "The output renders as valid D2.",
       );
-      expect(userMessages3.length, "Should have 3 user messages").toBe(3);
     },
   );
 
@@ -133,23 +97,17 @@ describe("DiagramAgent - Example Conversations", () => {
   conversation(
     "Validate connections",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         "Create a diagram with Client, Server, and Database. " +
           "Connect Client to Server, and Server to Database.",
       );
 
-      const canvas = agent.canvas;
-
-      // Check elements exist
-      expect(canvas.content).toContain("Client");
-      expect(canvas.content).toContain("Server");
-      expect(canvas.content).toContain("Database");
-
-      // Check connections exist (basic string matching, case-insensitive)
-      expect(canvas.content).toMatch(/client.*->.*server|client.*--.*server/i);
-      expect(canvas.content).toMatch(
-        /server.*->.*database|server.*--.*database/i,
+      agent.criteria(
+        "The diagram includes Client, Server, and Database shapes.",
+        "Client connects to Server, and Server connects to Database in the requested order.",
+        "No extra shapes or connections are added.",
+        "The output is valid D2 and renders correctly.",
       );
     },
   );
@@ -161,38 +119,15 @@ describe("DiagramAgent - Example Conversations", () => {
   conversation(
     "Inspect conversation history",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send("Create box A");
       await agent.send("Create box B");
 
-      const conversation = agent.conversation;
-
-      // Check message counts
-      expect(conversation.messages.length).toBeGreaterThanOrEqual(4);
-
-      const userMessages = conversation.messages.filter(
-        (m) => m.role === "user",
+      agent.criteria(
+        "The conversation captures two user turns: Create box A followed by Create box B.",
+        "The diagram reflects both box A and box B after the two turns.",
+        "The transcript preserves the turn order without missing messages.",
       );
-      expect(userMessages.length).toBe(2);
-
-      const canvasUpdates = conversation.messages.filter(
-        (m) => m.role === "canvas_update",
-      );
-      expect(canvasUpdates.length).toBeGreaterThanOrEqual(1);
-
-      // Check specific messages
-      expect(userMessages[0].content).toContain("box A");
-      expect(userMessages[1].content).toContain("box B");
-
-      // Check last message
-      const lastMessage =
-        conversation.messages[conversation.messages.length - 1];
-      expect(lastMessage).toBeDefined();
-
-      const lastUserMessage = [...conversation.messages]
-        .reverse()
-        .find((m) => m.role === "user");
-      expect(lastUserMessage?.content).toContain("box B");
     },
   );
 
@@ -203,23 +138,16 @@ describe("DiagramAgent - Example Conversations", () => {
   conversation(
     "Compare canvas states",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send("Create a Web Server");
-
-      // Capture first state
-      const state1 = agent.canvas;
-      const content1 = state1.content;
 
       await agent.send("Add a Database");
 
-      // Capture second state
-      const state2 = agent.canvas;
-
-      // Compare states
-      expect(state2.content).not.toBe(content1);
-      expect(state2.content).toContain("Database");
-      expect(state2.content).toContain("Web Server"); // Original should still be there
-      expect(state2.content.length).toBeGreaterThan(content1.length);
+      agent.criteria(
+        "After the second turn, the diagram includes both Web Server and Database.",
+        "The update is additive rather than replacing the initial Web Server.",
+        "The output renders as valid D2.",
+      );
     },
   );
 
@@ -230,23 +158,15 @@ describe("DiagramAgent - Example Conversations", () => {
   conversation(
     "Handle unclear request",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       // This tests that the agent handles unclear requests gracefully
       // The agent may choose to create something, ask for clarification, or do nothing
       await agent.send("Add a thing");
 
-      const conversation = agent.conversation;
-
-      // Validate that the request was processed (at minimum, user message exists)
-      expect(conversation.messages.length).toBeGreaterThanOrEqual(1);
-
-      const userMessages = conversation.messages.filter(
-        (m) => m.role === "user",
+      agent.criteria(
+        "The agent handles the unclear request without errors.",
+        "The interaction records the user prompt and provides a coherent response or clarification.",
       );
-      expect(userMessages.length).toBe(1);
-      expect(userMessages[0].content).toContain("Add a thing");
-
-      // Test passed if we got here without throwing an error
     },
   );
 });

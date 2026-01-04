@@ -78,35 +78,18 @@ describe("Benchmark: Simple Shapes and Labels", () => {
   conversation(
     "Three Shapes with Different Labels",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       // ACTION: Send message to agent
       await agent.send(
         "Create a diagram with three shapes labeled: 'database', 'API Server', and 'UI Client'",
       );
 
-      // OBSERVATION: Access canvas state
-      const canvas = agent.canvas;
-
-      // ASSERTIONS: Validate the diagram content
-      expect(canvas.content, "Canvas should contain 'database'").toContain(
-        "database",
+      agent.criteria(
+        "The diagram presents three distinct shapes labeled database, API Server, and UI Client.",
+        "All three items are standalone shapes without any connecting edges or relationships.",
+        "Each shape uses the default rectangle style rather than a specialized shape type.",
+        "The output is a valid D2 diagram that renders without syntax errors.",
       );
-      expect(canvas.content, "Canvas should contain 'API Server'").toContain(
-        "API Server",
-      );
-      expect(canvas.content, "Canvas should contain 'UI Client'").toContain(
-        "UI Client",
-      );
-      expect(
-        canvas.content.trim().length,
-        "Canvas should not be empty",
-      ).toBeGreaterThan(0);
-
-      // TODO: Add assertions for:
-      // - Exactly three shapes are declared
-      // - No connections or relationships exist between shapes
-      // - All shapes use default rectangle type
-      // - The generated D2 code is valid and parseable
     },
   );
 
@@ -119,36 +102,18 @@ describe("Benchmark: Simple Shapes and Labels", () => {
   conversation(
     "Multiple Services with Descriptive Labels",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       // ACTION: Send message to agent
       await agent.send(
         "Create a diagram with these services: 'Redis Cache', 'Cloud Storage', and 'queue'",
       );
 
-      // OBSERVATION: Access canvas state
-      const canvas = agent.canvas;
-
-      // ASSERTIONS: Validate the diagram content
-      expect(canvas.content, "Canvas should contain 'Redis Cache'").toContain(
-        "Redis Cache",
+      agent.criteria(
+        "The diagram shows three service shapes labeled Redis Cache, Cloud Storage, and queue.",
+        "There are no connections, arrows, or relationship lines between the services.",
+        "The services appear as default rectangular shapes without special styling.",
+        "The generated D2 is valid and renders without errors.",
       );
-      expect(
-        canvas.content,
-        "Canvas should contain 'Cloud Storage'",
-      ).toContain("Cloud Storage");
-      expect(canvas.content, "Canvas should contain 'queue'").toContain(
-        "queue",
-      );
-      expect(
-        canvas.content.trim().length,
-        "Canvas should not be empty",
-      ).toBeGreaterThan(0);
-
-      // TODO: Add assertions for:
-      // - Exactly three shapes are declared
-      // - No connections or relationships exist between shapes
-      // - All shapes are default type (rectangle)
-      // - The generated D2 code is valid and parseable
     },
   );
 });

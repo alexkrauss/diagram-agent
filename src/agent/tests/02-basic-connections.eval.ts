@@ -55,33 +55,18 @@ describe("Benchmark: Basic Connections", () => {
   conversation(
     "Simple Directional Connections",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         "Create a diagram with a shape labeled 'User' and a shape labeled 'Server'. Create a directed connection from 'User' to 'Server' labeled 'request'. Create a directed connection from 'Server' to 'User' labeled 'response'."
       );
 
-      const canvas = agent.canvas;
-
-      // Check shapes exist
-      expect(canvas.content, "Canvas should contain User shape").toContain(
-        "User"
+      agent.criteria(
+        "The diagram contains a User shape and a Server shape.",
+        "There is a directed connection from User to Server labeled request.",
+        "There is a directed connection from Server back to User labeled response.",
+        "No extra shapes or unrelated connections are introduced.",
+        "The diagram renders as valid D2.",
       );
-      expect(canvas.content, "Canvas should contain Server shape").toContain(
-        "Server"
-      );
-
-      // Check connections exist with labels
-      expect(
-        canvas.content,
-        "Canvas should contain connection labeled 'request'"
-      ).toContain("request");
-      expect(
-        canvas.content,
-        "Canvas should contain connection labeled 'response'"
-      ).toContain("response");
-
-      // Check for directed connections (using ->)
-      // TODO: Add more specific assertions for connection directionality and ensure User -> Server and Server -> User exist
     }
   );
 
@@ -91,39 +76,18 @@ describe("Benchmark: Basic Connections", () => {
   conversation(
     "Bi-Directional and Undirected Connections",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         "Create a diagram with three shapes: 'Primary Database', 'Replica Database', and 'Cache Server'. Create a bidirectional connection between 'Primary Database' and 'Replica Database' labeled 'Replication'. Create an undirected connection between 'Replica Database' and 'Cache Server' labeled 'Sync status'."
       );
 
-      const canvas = agent.canvas;
-
-      // Check shapes exist
-      expect(
-        canvas.content,
-        "Canvas should contain Primary Database shape"
-      ).toContain("Primary Database");
-      expect(
-        canvas.content,
-        "Canvas should contain Replica Database shape"
-      ).toContain("Replica Database");
-      expect(
-        canvas.content,
-        "Canvas should contain Cache Server shape"
-      ).toContain("Cache Server");
-
-      // Check connection labels exist
-      expect(
-        canvas.content,
-        "Canvas should contain connection labeled 'Replication'"
-      ).toContain("Replication");
-      expect(
-        canvas.content,
-        "Canvas should contain connection labeled 'Sync status'"
-      ).toContain("Sync status");
-
-      // TODO: Add assertions for bidirectional connection (<->) between Primary Database and Replica Database
-      // TODO: Add assertions for undirected connection (--) between Replica Database and Cache Server
+      agent.criteria(
+        "The diagram includes shapes for Primary Database, Replica Database, and Cache Server.",
+        "Primary Database and Replica Database are connected bidirectionally with the label Replication.",
+        "Replica Database and Cache Server share an undirected connection labeled Sync status.",
+        "The diagram does not add extra shapes or connections beyond the request.",
+        "The output is valid D2 that renders correctly.",
+      );
     }
   );
 
@@ -133,33 +97,18 @@ describe("Benchmark: Basic Connections", () => {
   conversation(
     "Connection Chaining",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         "Create a diagram with three shapes: 'Data Source', 'ETL Processor', and 'Data Lake'. Create two directed connections: from 'Data Source' to 'ETL Processor', and from 'ETL Processor' to 'Data Lake'. Both connections should share the label 'Data flow'."
       );
 
-      const canvas = agent.canvas;
-
-      // Check shapes exist
-      expect(canvas.content, "Canvas should contain Data Source shape").toContain(
-        "Data Source"
+      agent.criteria(
+        "The diagram shows Data Source, ETL Processor, and Data Lake as distinct shapes.",
+        "There is a directed Data Source to ETL Processor connection labeled Data flow.",
+        "There is a directed ETL Processor to Data Lake connection labeled Data flow.",
+        "Only the two requested connections appear, with no extra links.",
+        "The D2 output is syntactically valid and renders.",
       );
-      expect(
-        canvas.content,
-        "Canvas should contain ETL Processor shape"
-      ).toContain("ETL Processor");
-      expect(canvas.content, "Canvas should contain Data Lake shape").toContain(
-        "Data Lake"
-      );
-
-      // Check connection label exists
-      expect(
-        canvas.content,
-        "Canvas should contain connection labeled 'Data flow'"
-      ).toContain("Data flow");
-
-      // TODO: Add assertions to verify two separate connections exist: Data Source -> ETL Processor and ETL Processor -> Data Lake
-      // TODO: Verify both connections have the same "Data flow" label
     }
   );
 
@@ -169,7 +118,7 @@ describe("Benchmark: Basic Connections", () => {
   conversation(
     "Multiple Connections to Same Shape",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         "Create a diagram with five shapes: 'Client', 'API Gateway', 'Auth Service', 'User Service', and 'Database'. Create these connections:\n" +
         "- From 'Client' to 'API Gateway' labeled 'HTTP'\n" +
@@ -181,54 +130,15 @@ describe("Benchmark: Basic Connections", () => {
         "- From 'Database' to 'User Service' labeled 'Result'"
       );
 
-      const canvas = agent.canvas;
-
-      // Check all five shapes exist
-      expect(canvas.content, "Canvas should contain Client shape").toContain(
-        "Client"
+      agent.criteria(
+        "The diagram includes five shapes labeled Client, API Gateway, Auth Service, User Service, and Database.",
+        "Client connects to API Gateway with a directed HTTP connection.",
+        "API Gateway connects to Auth Service and User Service with directed Route connections.",
+        "Auth Service and User Service each connect to Database with directed Query connections.",
+        "Database connects back to Auth Service and User Service with directed Result connections.",
+        "No additional shapes or connections appear beyond the requested flow.",
+        "The diagram is valid D2 and renders successfully.",
       );
-      expect(canvas.content, "Canvas should contain API Gateway shape").toContain(
-        "API Gateway"
-      );
-      expect(
-        canvas.content,
-        "Canvas should contain Auth Service shape"
-      ).toContain("Auth Service");
-      expect(
-        canvas.content,
-        "Canvas should contain User Service shape"
-      ).toContain("User Service");
-      expect(canvas.content, "Canvas should contain Database shape").toContain(
-        "Database"
-      );
-
-      // Check connection labels exist
-      expect(
-        canvas.content,
-        "Canvas should contain connection labeled 'HTTP'"
-      ).toContain("HTTP");
-      expect(
-        canvas.content,
-        "Canvas should contain connection labeled 'Route'"
-      ).toContain("Route");
-      expect(
-        canvas.content,
-        "Canvas should contain connection labeled 'Query'"
-      ).toContain("Query");
-      expect(
-        canvas.content,
-        "Canvas should contain connection labeled 'Result'"
-      ).toContain("Result");
-
-      // TODO: Add assertions for each specific connection:
-      // - Client -> API Gateway labeled "HTTP"
-      // - API Gateway -> Auth Service labeled "Route"
-      // - API Gateway -> User Service labeled "Route"
-      // - Auth Service -> Database labeled "Query"
-      // - User Service -> Database labeled "Query"
-      // - Database -> Auth Service labeled "Result"
-      // - Database -> User Service labeled "Result"
-      // TODO: Verify all connections have correct directionality
     }
   );
 });

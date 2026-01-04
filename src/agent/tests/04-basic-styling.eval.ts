@@ -51,30 +51,17 @@ describe("Benchmark 04 - Basic Styling", () => {
   conversation(
     "Shape Fill Colors (CSS Names and Hex Codes)",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         "Create a diagram with three rectangles. The first rectangle should display the text 'Red Fill' and have a red fill using the CSS name 'red'. The second rectangle should display the text 'Blue Fill' and have a blue fill using hex code '#0000FF'. The third rectangle should display the text 'Green Fill' and have a green fill using hex code '#008000'."
       );
 
-      const canvas = agent.canvas;
-
-      // Check that all three rectangles with labels exist
-      expect(
-        canvas.content,
-        "Canvas should contain Red Fill label"
-      ).toContain("Red Fill");
-      expect(
-        canvas.content,
-        "Canvas should contain Blue Fill label"
-      ).toContain("Blue Fill");
-      expect(
-        canvas.content,
-        "Canvas should contain Green Fill label"
-      ).toContain("Green Fill");
-
-      // TODO: Add assertions for fill colors (red, #0000FF, #008000)
-      // TODO: Add assertion that exactly three shapes exist
-      // TODO: Add assertion that no connections exist
+      agent.criteria(
+        "The diagram shows three rectangles labeled Red Fill, Blue Fill, and Green Fill.",
+        "Red Fill uses a red fill color by name, Blue Fill uses #0000FF, and Green Fill uses #008000.",
+        "No connections appear between the shapes.",
+        "The output is valid D2 and renders correctly.",
+      );
     }
   );
 
@@ -84,32 +71,17 @@ describe("Benchmark 04 - Basic Styling", () => {
   conversation(
     "Stroke Colors and Stroke Width",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         "Create a diagram with three circles. The first circle should display the text 'Thin Black Stroke' and have a black stroke color and stroke width 1. The second circle should display the text 'Medium Purple Stroke' and have a purple stroke color and stroke width 5. The third circle should display the text 'Thick Navy Stroke' and have a navy stroke color and stroke width 10."
       );
 
-      const canvas = agent.canvas;
-
-      // Check that all three circles with labels exist
-      expect(
-        canvas.content,
-        "Canvas should contain Thin Black Stroke label"
-      ).toContain("Thin Black Stroke");
-      expect(
-        canvas.content,
-        "Canvas should contain Medium Purple Stroke label"
-      ).toContain("Medium Purple Stroke");
-      expect(
-        canvas.content,
-        "Canvas should contain Thick Navy Stroke label"
-      ).toContain("Thick Navy Stroke");
-
-      // Check that shapes are circles
-      // TODO: Add assertions for circle shape property
-      // TODO: Add assertions for stroke colors (black, purple, navy)
-      // TODO: Add assertions for stroke widths (1, 5, 10)
-      // TODO: Add assertion that no connections exist
+      agent.criteria(
+        "The diagram contains three circle shapes labeled Thin Black Stroke, Medium Purple Stroke, and Thick Navy Stroke.",
+        "Each circle uses the requested stroke color and stroke width (black/1, purple/5, navy/10).",
+        "No connections are present between the circles.",
+        "The D2 output renders without errors.",
+      );
     }
   );
 
@@ -119,32 +91,18 @@ describe("Benchmark 04 - Basic Styling", () => {
   conversation(
     "Dashed Connections and Font Styling",
     createTestAgent,
-    async (agent, expect) => {
+    async (agent) => {
       await agent.send(
         "Create a diagram with two rectangles: one displaying the text 'Start', and one displaying the text 'End'. Connect them with a directed arrow from 'Start' to 'End' that has a dashed line style (stroke-dash value 3). Set the font size of 'Start' to 18 with font color red. Set the font size of 'End' to 14 with font color #0000FF."
       );
 
-      const canvas = agent.canvas;
-
-      // Check that both rectangles exist
-      expect(
-        canvas.content,
-        "Canvas should contain Start label"
-      ).toContain("Start");
-      expect(
-        canvas.content,
-        "Canvas should contain End label"
-      ).toContain("End");
-
-      // Check that a connection exists from Start to End
-      expect(
-        canvas.content,
-        "Canvas should contain a connection from Start to End"
-      ).toMatch(/start.*->.*end/i);
-
-      // TODO: Add assertion for dashed line style (stroke-dash: 3)
-      // TODO: Add assertion for Start font size 18 and font color red
-      // TODO: Add assertion for End font size 14 and font color #0000FF
+      agent.criteria(
+        "Two rectangles labeled Start and End are present.",
+        "A directed connection from Start to End is shown with a dashed line style (stroke-dash 3).",
+        "Start uses font size 18 with red text; End uses font size 14 with #0000FF text.",
+        "The diagram contains no extra shapes or connections beyond what was requested.",
+        "The output is valid D2 and renders correctly.",
+      );
     }
   );
 });
