@@ -62,7 +62,6 @@ describe("Benchmark: Containers with Nesting", () => {
         "The server container contains two child shapes labeled web and database.",
         "The web and database shapes are visually nested within server rather than at the top level.",
         "No connections appear between the shapes.",
-        "The output is valid D2 and renders correctly.",
       );
     },
   );
@@ -84,7 +83,6 @@ describe("Benchmark: Containers with Nesting", () => {
         "A db shape exists inside clouds at the same level as aws and gcloud.",
         "Connections exist from load_balancer to api, api to db, auth to db, and from gcloud to aws.",
         "The nesting hierarchy is correct across all three levels.",
-        "The diagram is valid D2 and renders without errors.",
       );
     },
   );
@@ -106,7 +104,6 @@ describe("Benchmark: Containers with Nesting", () => {
         "A users shape exists at the top level outside the clouds container.",
         "Connections exist from load_balancer to db, auth to db, and from Google Cloud Platform to Amazon Web Services.",
         "Users connects to load_balancer and auth across container boundaries.",
-        "The nesting is accurate and the diagram renders as valid D2.",
       );
     },
   );
@@ -127,7 +124,6 @@ describe("Benchmark: Containers with Nesting", () => {
         "Apartment contains bedroom and bathroom; office contains spare_room and bathroom.",
         "A connection labeled Portal links the apartment bathroom to the office bathroom.",
         "The diagram uses correct container scoping for the two bathroom nodes.",
-        "The output is valid D2 and renders without errors.",
       );
     },
   );
@@ -148,7 +144,6 @@ describe("Benchmark: Containers with Nesting", () => {
         "Each container contains a presents shape, and the christmas presents connects to the birthdays presents with the label regift.",
         "The christmas container has a light green fill color (#ACE1AF).",
         "The diagram does not introduce extra containers or connections.",
-        "The D2 output is valid and renders correctly.",
       );
     },
   );

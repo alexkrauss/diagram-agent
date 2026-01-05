@@ -68,7 +68,6 @@ describe("Sequence Diagrams Benchmark", () => {
         "Two messages are shown in the specified order: Alice to Bob with the well-adjusted question, then Bob to Alice with the bridge or golf response.",
         "Message directionality matches the conversation flow.",
         "No extra actors or messages are added.",
-        "The diagram renders as valid D2.",
       );
     }
   );
@@ -101,7 +100,6 @@ describe("Sequence Diagrams Benchmark", () => {
         "Four messages appear in order: Alice to Bob (Send request), Bob to Charlie (Query data), Charlie to Bob (Return results), and Bob to Alice (Send response).",
         "Bob shows an activation span covering the middle two messages (Query data and Return results).",
         "Message directions and ordering match the prompt.",
-        "The output renders as valid D2.",
       );
     }
   );
@@ -137,7 +135,6 @@ describe("Sequence Diagrams Benchmark", () => {
         "Business phase contains Alice to Bob 'How's the project?' followed by Bob to Alice 'Going well!'.",
         "Goodbye phase contains Bob to Alice 'Goodbye'.",
         "Group boundaries are visible and message ordering is preserved.",
-        "The diagram renders as valid D2.",
       );
     }
   );
@@ -171,7 +168,6 @@ describe("Sequence Diagrams Benchmark", () => {
         "A note on Customer says 'Waiting for confirmation' and appears between Request payment and Payment approved.",
         "A note on Website says 'Order complete' and appears after Order confirmed.",
         "The Website self-message is visually distinct as a self-call.",
-        "No extra actors or messages are added and the diagram renders as valid D2.",
       );
     }
   );

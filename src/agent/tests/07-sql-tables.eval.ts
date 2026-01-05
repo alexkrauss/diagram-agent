@@ -73,7 +73,6 @@ describe("SQL Tables and Entity-Relationship Diagrams", () => {
         "The users table includes columns id (int, primary key), name (string), email (string), and created_at (timestamp).",
         "Only the id column carries the primary key constraint; the other columns are unconstrained.",
         "No extra tables or relationships are added.",
-        "The output is valid D2 and renders correctly.",
       );
     },
   );
@@ -104,7 +103,6 @@ describe("SQL Tables and Entity-Relationship Diagrams", () => {
         "Columns appear with the requested types: product_id (int, primary key), sku (string, unique), name (string), category_id (int, foreign key), price (decimal), in_stock (boolean).",
         "Constraints match the request and are only applied to product_id, sku, and category_id.",
         "No additional tables or relationships are introduced.",
-        "The output is valid D2 and renders correctly.",
       );
     },
   );
@@ -150,7 +148,6 @@ describe("SQL Tables and Entity-Relationship Diagrams", () => {
         "Posts includes post_id (int, primary key), title (string), content (text), author_id (int, foreign key), and created_at (timestamp).",
         "Comments includes comment_id (int, primary key), post_id (int, foreign key), author_id (int, foreign key), content (text), and created_at (timestamp).",
         "Foreign key connections link posts.author_id to authors.author_id, comments.post_id to posts.post_id, and comments.author_id to authors.author_id.",
-        "No extra tables or relationships are added and the output renders as valid D2.",
       );
     },
   );

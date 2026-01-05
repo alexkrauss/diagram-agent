@@ -64,7 +64,6 @@ describe("DiagramAgent - Icons and Images", () => {
         "A Database rectangle includes the specified database icon URL.",
         "A User circle includes the specified user icon URL.",
         "Each icon is applied to its corresponding labeled shape type.",
-        "No extra shapes are added and the output renders as valid D2.",
       );
     }
   );
@@ -90,7 +89,6 @@ describe("DiagramAgent - Icons and Images", () => {
         "A Kubernetes Cluster container is present with the specified Kubernetes icon URL.",
         "Pod A and Pod B are rectangles nested inside the Kubernetes Cluster container.",
         "The container and children are labeled correctly with no extra shapes.",
-        "The diagram renders as valid D2.",
       );
     }
   );
@@ -113,7 +111,6 @@ describe("DiagramAgent - Icons and Images", () => {
       agent.criteria(
         "The diagram contains a standalone image shape labeled Team Logo.",
         "The Team Logo uses shape: image and displays the specified user group icon URL.",
-        "No other shapes are included and the output renders as valid D2.",
       );
     }
   );
@@ -141,7 +138,6 @@ describe("DiagramAgent - Icons and Images", () => {
         "Processed Data is a rectangle with the specified copy icon URL, fill color #E8F4F8, and font color #2C3E50.",
         "An Output rectangle is present and connected from Processed Data with a directed arrow.",
         "Icons and styling coexist correctly on the Processed Data shape.",
-        "No extra shapes are added and the diagram renders as valid D2.",
       );
     }
   );

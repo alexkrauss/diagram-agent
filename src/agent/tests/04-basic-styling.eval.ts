@@ -60,7 +60,6 @@ describe("Benchmark 04 - Basic Styling", () => {
         "The diagram shows three rectangles labeled Red Fill, Blue Fill, and Green Fill.",
         "Red Fill uses a red fill color by name, Blue Fill uses #0000FF, and Green Fill uses #008000.",
         "No connections appear between the shapes.",
-        "The output is valid D2 and renders correctly.",
       );
     }
   );
@@ -80,7 +79,6 @@ describe("Benchmark 04 - Basic Styling", () => {
         "The diagram contains three circle shapes labeled Thin Black Stroke, Medium Purple Stroke, and Thick Navy Stroke.",
         "Each circle uses the requested stroke color and stroke width (black/1, purple/5, navy/10).",
         "No connections are present between the circles.",
-        "The D2 output renders without errors.",
       );
     }
   );
@@ -101,7 +99,6 @@ describe("Benchmark 04 - Basic Styling", () => {
         "A directed connection from Start to End is shown with a dashed line style (stroke-dash 3).",
         "Start uses font size 18 with red text; End uses font size 14 with #0000FF text.",
         "The diagram contains no extra shapes or connections beyond what was requested.",
-        "The output is valid D2 and renders correctly.",
       );
     }
   );

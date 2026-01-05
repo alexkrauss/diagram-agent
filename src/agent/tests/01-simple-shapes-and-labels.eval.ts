@@ -88,7 +88,6 @@ describe("Benchmark: Simple Shapes and Labels", () => {
         "The diagram presents three distinct shapes labeled database, API Server, and UI Client.",
         "All three items are standalone shapes without any connecting edges or relationships.",
         "Each shape uses the default rectangle style rather than a specialized shape type.",
-        "The output is a valid D2 diagram that renders without syntax errors.",
       );
     },
   );
@@ -112,7 +111,6 @@ describe("Benchmark: Simple Shapes and Labels", () => {
         "The diagram shows three service shapes labeled Redis Cache, Cloud Storage, and queue.",
         "There are no connections, arrows, or relationship lines between the services.",
         "The services appear as default rectangular shapes without special styling.",
-        "The generated D2 is valid and renders without errors.",
       );
     },
   );

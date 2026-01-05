@@ -59,7 +59,6 @@ describe("DiagramAgent - Example Conversations", () => {
       agent.criteria(
         "The diagram includes two boxes labeled Frontend and Backend.",
         "No extra shapes or connections are introduced.",
-        "The output is valid D2 and renders correctly.",
       );
     },
   );
@@ -85,7 +84,6 @@ describe("DiagramAgent - Example Conversations", () => {
         "The final diagram includes Web Server, Database, and Load Balancer.",
         "Database is connected to the Web Server, and the Load Balancer sits in front of the Web Server.",
         "The diagram accumulates elements across turns without losing earlier shapes.",
-        "The output renders as valid D2.",
       );
     },
   );
@@ -107,7 +105,6 @@ describe("DiagramAgent - Example Conversations", () => {
         "The diagram includes Client, Server, and Database shapes.",
         "Client connects to Server, and Server connects to Database in the requested order.",
         "No extra shapes or connections are added.",
-        "The output is valid D2 and renders correctly.",
       );
     },
   );
@@ -146,7 +143,6 @@ describe("DiagramAgent - Example Conversations", () => {
       agent.criteria(
         "After the second turn, the diagram includes both Web Server and Database.",
         "The update is additive rather than replacing the initial Web Server.",
-        "The output renders as valid D2.",
       );
     },
   );

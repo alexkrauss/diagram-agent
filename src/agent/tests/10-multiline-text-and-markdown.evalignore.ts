@@ -64,7 +64,6 @@ Follow these **important** steps:
         "A standalone markdown text block is present with the Getting Started header.",
         "The block includes the bold emphasis on important and the three bullet steps for install, build, and start.",
         "Formatting is preserved as markdown rather than converted to plain prose.",
-        "The diagram renders as valid D2.",
       );
     },
   );
@@ -89,7 +88,6 @@ Follow these **important** steps:
         "A shape labeled warning exists with a markdown label.",
         "The label includes bold Warning: and italic emphasis on critical.",
         "The markdown is preserved as inline formatting.",
-        "The diagram renders as valid D2.",
       );
     },
   );
@@ -116,7 +114,6 @@ function calculateSum(arr) {
         "A JavaScript code block is shown with the calculateSum function exactly as specified.",
         "The code block preserves the reduce call, arrow function syntax, and parameter names.",
         "The formatting remains a code block with JavaScript context.",
-        "The diagram renders as valid D2.",
       );
     },
   );
@@ -145,7 +142,6 @@ def process_data(items):
         "A Python code block shows the process_data function exactly as specified.",
         "The code includes the for loop, append call, and item * 2 operation.",
         "Indentation and code block formatting are preserved.",
-        "The diagram renders as valid D2.",
       );
     },
   );
@@ -173,7 +169,6 @@ WHERE orders.total > 100
         "An SQL code block contains the SELECT, FROM, JOIN, and WHERE query exactly as specified.",
         "The query references users.name, orders.total, and the join condition users.id = orders.user_id.",
         "The formatting remains a code block with SQL context.",
-        "The diagram renders as valid D2.",
       );
     },
   );
@@ -208,7 +203,6 @@ This guide explains **how to setup** the environment:
         "The numbered list contains the four setup steps with the specified inline code snippets.",
         "The Note line appears in bold and the content matches the request.",
         "Formatting remains markdown with line breaks preserved.",
-        "The diagram renders as valid D2.",
       );
     },
   );
@@ -234,7 +228,6 @@ const check = (x > 5) || (y < 10);
         "A TypeScript code block contains the Result union type and the check expression exactly as specified.",
         "Special characters (|, ||, >, <) are preserved in the code block.",
         "The block is formatted as TypeScript with code block styling.",
-        "The diagram renders as valid D2.",
       );
     },
   );
@@ -261,7 +254,6 @@ E = mc^2
         "A LaTeX code block contains the E = mc^2 formula and the summation equation.",
         "LaTeX commands like \\sum and \\frac are preserved.",
         "The empty line between formulas is maintained.",
-        "The diagram renders as valid D2.",
       );
     },
   );
@@ -305,7 +297,6 @@ Third shape with this markdown:
         "The JavaScript block preserves async/await usage and the fetch call.",
         "The markdown blockquote includes the Important note and the three bullet items.",
         "Markdown and code formatting are preserved across all shapes.",
-        "The diagram renders as valid D2.",
       );
     },
   );

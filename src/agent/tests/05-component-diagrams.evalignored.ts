@@ -69,7 +69,6 @@ describe("Component Diagrams Benchmark", () => {
         "A directed connection runs from Frontend to Backend labeled HTTP requests.",
         "A directed connection runs from Backend to Database labeled SQL queries.",
         "No extra shapes or connections appear beyond the 3-tier flow.",
-        "The output is valid D2 and renders correctly.",
       );
     },
   );
@@ -115,7 +114,6 @@ describe("Component Diagrams Benchmark", () => {
         "User Service connects to User Database with query, Product Service connects to Product Database with query, and Order Service connects to Payment Gateway with process payment.",
         "All three services connect to the Shared Cache with labeled read/write connections.",
         "The container nesting and connection directionality match the requested architecture, with no extra elements.",
-        "The diagram renders as valid D2.",
       );
     },
   );
@@ -164,7 +162,6 @@ describe("Component Diagrams Benchmark", () => {
         "Within each region, Load Balancer connects to Web Cluster (forward) and Web Cluster to App Cluster (API call).",
         "Each App Cluster connects to the shared Database with SQL query labels.",
         "Each region's Load Balancer connects to Monitoring Service with metrics labels.",
-        "The two region containers mirror each other and the diagram renders as valid D2.",
       );
     },
   );

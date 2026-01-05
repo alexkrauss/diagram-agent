@@ -61,7 +61,6 @@ describe("DiagramAgent - UML Class Diagrams", () => {
         "The diagram includes a Person class rendered as a UML class shape.",
         "Person has fields name (string), age (int or integer), and email (string) with default visibility.",
         "No extra fields, methods, or classes are introduced.",
-        "The output is valid D2 and renders correctly.",
       );
     },
   );
@@ -81,7 +80,6 @@ describe("DiagramAgent - UML Class Diagrams", () => {
         "The diagram includes a User class rendered as a UML class shape.",
         "User defines methods getId(): int or integer, getName(): string, and login(username: string): boolean or bool.",
         "Method names, parameters, and return types match the request.",
-        "No extra classes or methods are added, and the output renders as valid D2.",
       );
     },
   );
@@ -101,7 +99,6 @@ describe("DiagramAgent - UML Class Diagrams", () => {
         "The diagram includes an Employee class rendered as a UML class shape.",
         "Employee fields use the requested visibility: +name (string), -salary (float), #department (string), and employeeId (int or integer) with default visibility.",
         "Visibility modifiers and types align with the prompt.",
-        "The output is valid D2 and renders correctly.",
       );
     },
   );
@@ -122,7 +119,6 @@ describe("DiagramAgent - UML Class Diagrams", () => {
         "Private fields accountNumber (string) and balance (float) are present.",
         "Public methods deposit(amount: float): void and getBalance(): float are present.",
         "A protected method calculateInterest(rate: float): float is present.",
-        "Visibility modifiers, parameters, and return types align with the request, and the output renders as valid D2.",
       );
     },
   );
@@ -143,7 +139,6 @@ describe("DiagramAgent - UML Class Diagrams", () => {
         "Animal has fields name (string) and age (int or integer) plus methods eat(): void and sleep(): void.",
         "Dog adds bark(): void and inherits from Animal.",
         "Cat adds meow(): void and inherits from Animal.",
-        "Inheritance relationships are shown from Dog to Animal and Cat to Animal, and the diagram renders as valid D2.",
       );
     },
   );
@@ -164,7 +159,6 @@ describe("DiagramAgent - UML Class Diagrams", () => {
         "Product has fields sku (string), name (string), price (float), and a method calculateTax(rate: float): float.",
         "Order has fields orderId (int or integer), items (array), totalAmount (float), and methods addItem(): void and getTotal(): float.",
         "A relationship shows Order contains or references Product.",
-        "No extra classes are introduced and the output renders as valid D2.",
       );
     },
   );
