@@ -19,6 +19,7 @@ def render_html(data: Dict[str, Any]) -> str:
 
     rows = []
     for test in tests:
+        test_has_error = False
         turn_blocks = []
         for turn in test.get("turns", []):
             criteria_html = ""
@@ -29,6 +30,8 @@ def render_html(data: Dict[str, Any]) -> str:
             else:
                 for result in judge_criteria:
                     status = "pass" if result.get("score") else "fail"
+                    if status == "fail":
+                        test_has_error = True
                     criteria_html += (
                         f"<div class='criterion {status}'>"
                         f"<div class='criterion-text'>{esc(result.get('criterion'))}</div>"
@@ -72,11 +75,13 @@ def render_html(data: Dict[str, Any]) -> str:
                 """
             )
 
+        error_badge = "<span class='test-badge test-badge-error'>Error</span>" if test_has_error else ""
         rows.append(
             f"""
-            <details>
+            <details class="test-card {'test-error' if test_has_error else ''}" data-has-error="{str(test_has_error).lower()}">
               <summary>
                 <span>{esc(test.get("fullName"))}</span>
+                {error_badge}
               </summary>
               <div class="test-body">
                 {''.join(turn_blocks)}
@@ -98,7 +103,9 @@ def render_html(data: Dict[str, Any]) -> str:
       background: #f9f9f9;
     }}
     h1 {{ margin-top: 0; }}
-    .summary {{ margin-bottom: 20px; }}
+    .summary {{ margin-bottom: 12px; }}
+    .controls {{ margin-bottom: 20px; }}
+    .controls label {{ font-size: 13px; display: inline-flex; gap: 8px; align-items: center; }}
     details {{
       background: #fff;
       border-radius: 8px;
@@ -112,6 +119,19 @@ def render_html(data: Dict[str, Any]) -> str:
       justify-content: space-between;
       background: #fafafa;
     }}
+    .test-error > summary {{
+      background: #fff1f0;
+      border-left: 4px solid #c62828;
+    }}
+    .test-badge {{
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-weight: 600;
+    }}
+    .test-badge-error {{ color: #b71c1c; background: #ffebee; }}
     .status.pass {{ color: #2e7d32; }}
     .status.fail {{ color: #c62828; }}
     .test-body {{ padding: 16px; }}
@@ -138,6 +158,7 @@ def render_html(data: Dict[str, Any]) -> str:
     .d2-details summary {{ cursor: pointer; font-size: 12px; }}
     .missing-section {{ background: #fff3e0; border: 1px solid #ffcc80; padding: 10px; border-radius: 6px; margin-bottom: 16px; font-size: 12px; }}
     pre {{ white-space: pre-wrap; }}
+    body.filter-errors details[data-has-error="false"] {{ display: none; }}
   </style>
 </head>
 <body>
@@ -145,8 +166,19 @@ def render_html(data: Dict[str, Any]) -> str:
   <div class="summary">
     <div>Total tests: {summary.get("totalTests", 0)}</div>
   </div>
+  <div class="controls">
+    <label><input type="checkbox" id="filter-errors"> Show only tests with errors</label>
+  </div>
   {f"<div class='missing-section'><strong>Missing images:</strong><ul>{''.join(f'<li>{esc(path)}</li>' for path in missing_images)}</ul></div>" if missing_images else ""}
   {''.join(rows)}
+  <script>
+    const filter = document.getElementById("filter-errors");
+    if (filter) {{
+      filter.addEventListener("change", () => {{
+        document.body.classList.toggle("filter-errors", filter.checked);
+      }});
+    }}
+  </script>
 </body>
 </html>
 """.strip()
