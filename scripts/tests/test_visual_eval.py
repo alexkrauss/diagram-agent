@@ -1,6 +1,6 @@
 import unittest
 
-from scripts.visual_eval import evaluate_dataset, JudgeResult
+from scripts.visual_judge import evaluate_dataset, JudgeResult
 from scripts.visual_report import render_html
 
 
@@ -29,9 +29,9 @@ class VisualEvalTests(unittest.TestCase):
 
         output = evaluate_dataset(
             data,
-            stub_judge,
             "stub-model",
             "eval-results",
+            judge_fn=stub_judge,
             image_loader=lambda _: "fake",
         )
         criteria = output["tests"][0]["turns"][0]["judge"]["criteria"]

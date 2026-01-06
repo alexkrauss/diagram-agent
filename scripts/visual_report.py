@@ -1,10 +1,79 @@
+#!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.10"
+# ///
+import argparse
+import json
 import os
 from typing import Any, Dict, List
+
+
+def load_json(path: str) -> dict:
+    with open(path, "r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def compute_metrics(data: Dict[str, Any]) -> Dict[str, Any]:
+    tests = data.get("tests", [])
+    scenario_totals: Dict[str, Dict[str, int]] = {}
+    turn_total = 0
+    turn_success = 0
+    criteria_total = 0
+    criteria_success = 0
+
+    for test in tests:
+        scenario = ""
+        hierarchy = test.get("hierarchy") or []
+        if hierarchy:
+            scenario = str(hierarchy[0])
+        else:
+            scenario = str(test.get("fullName") or "Unknown scenario")
+        test_all_ok = True
+        turns = test.get("turns", [])
+        for turn in turns:
+            judge = turn.get("judge", {})
+            judge_criteria = judge.get("criteria", [])
+            turn_total += 1
+            if not judge_criteria:
+                turn_success += 1
+                continue
+            turn_ok = True
+            for result in judge_criteria:
+                criteria_total += 1
+                score = result.get("score")
+                if score == 1:
+                    criteria_success += 1
+                else:
+                    turn_ok = False
+            if turn_ok:
+                turn_success += 1
+            else:
+                test_all_ok = False
+
+        if scenario not in scenario_totals:
+            scenario_totals[scenario] = {"total": 0, "success": 0}
+        scenario_totals[scenario]["total"] += 1
+        if turns and test_all_ok:
+            scenario_totals[scenario]["success"] += 1
+
+    return {
+        "scenario_total": len(scenario_totals),
+        "scenario_success": sum(
+            1
+            for counts in scenario_totals.values()
+            if counts["success"] == counts["total"] and counts["total"] > 0
+        ),
+        "turn_total": turn_total,
+        "turn_success": turn_success,
+        "criteria_total": criteria_total,
+        "criteria_success": criteria_success,
+    }
 
 
 def render_html(data: Dict[str, Any]) -> str:
     tests = data.get("tests", [])
     summary = data.get("summary", {})
+    metrics = compute_metrics(data)
     missing_images: List[str] = []
 
     def esc(text: Any) -> str:
@@ -165,6 +234,9 @@ def render_html(data: Dict[str, Any]) -> str:
   <h1>Agent Evaluation Report</h1>
   <div class="summary">
     <div>Total tests: {summary.get("totalTests", 0)}</div>
+    <div>Scenario success rate: {metrics["scenario_success"]}/{metrics["scenario_total"]} ({(metrics["scenario_success"] / metrics["scenario_total"] * 100) if metrics["scenario_total"] else 0:.1f}%)</div>
+    <div>Turn success rate: {metrics["turn_success"]}/{metrics["turn_total"]} ({(metrics["turn_success"] / metrics["turn_total"] * 100) if metrics["turn_total"] else 0:.1f}%)</div>
+    <div>Criteria success rate: {metrics["criteria_success"]}/{metrics["criteria_total"]} ({(metrics["criteria_success"] / metrics["criteria_total"] * 100) if metrics["criteria_total"] else 0:.1f}%)</div>
   </div>
   <div class="controls">
     <label><input type="checkbox" id="filter-errors"> Show only tests with errors</label>
@@ -182,3 +254,49 @@ def render_html(data: Dict[str, Any]) -> str:
 </body>
 </html>
 """.strip()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Render HTML report from visual eval output.")
+    parser.add_argument("--input", default="eval-results/visual-eval-output.json")
+    parser.add_argument("--html", default="eval-results/eval-report.html")
+    args = parser.parse_args()
+
+    data = load_json(args.input)
+    metrics = compute_metrics(data)
+    html = render_html(data)
+    with open(args.html, "w", encoding="utf-8") as handle:
+        handle.write(html)
+
+    scenario_total = metrics["scenario_total"]
+    turn_total = metrics["turn_total"]
+    criteria_total = metrics["criteria_total"]
+    scenario_rate = (
+        (metrics["scenario_success"] / scenario_total * 100)
+        if scenario_total
+        else 0.0
+    )
+    turn_rate = (metrics["turn_success"] / turn_total * 100) if turn_total else 0.0
+    criteria_rate = (
+        (metrics["criteria_success"] / criteria_total * 100)
+        if criteria_total
+        else 0.0
+    )
+
+    print(
+        "Scenario success rate: "
+        f"{metrics['scenario_success']}/{scenario_total} ({scenario_rate:.1f}%)"
+    )
+    print(
+        "Turn success rate: "
+        f"{metrics['turn_success']}/{turn_total} ({turn_rate:.1f}%)"
+    )
+    print(
+        "Criteria success rate: "
+        f"{metrics['criteria_success']}/{criteria_total} ({criteria_rate:.1f}%)"
+    )
+    print(f"Wrote {args.html}")
+
+
+if __name__ == "__main__":
+    main()

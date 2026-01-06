@@ -24,7 +24,7 @@ User prompts |  .eval.ts (TS DSL tests)  |
                            |
                            v
              +---------------------------+
-             |  uv run scripts/visual_eval|
+             |  uv run scripts/visual_judge|
              |  judge + HTML rendering   |
              +-------------+-------------+
                            |
@@ -60,7 +60,7 @@ This file is the handoff point to the judge.
 
 ## HTML Report
 
-The Python runner (`scripts/visual_eval.py`) reads `visual-eval-input.json`, runs the visual judge, and produces:
+The Python runner (`scripts/visual_judge.py`) reads `visual-eval-input.json`, runs the visual judge, and produces:
 
 - `eval-results/visual-eval-output.json` (enriched with judge scores)
 - `eval-results/eval-report.html` (the primary report)
@@ -75,6 +75,8 @@ The report shows:
 `npm run eval` runs the full pipeline:
 
 1) `vitest run --config vitest.eval.config.ts`
-2) `uv run scripts/visual_eval.py --provider gemini --model models/gemini-3-flash-preview`
+2) `uv run scripts/visual_judge.py`
+   - The judge model is fixed to `gemini-2.5-flash-lite`.
+   - Add `--batch-criteria` to judge all criteria for a turn in one call.
 
 Open `eval-results/eval-report.html` to view the results.
