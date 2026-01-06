@@ -33,7 +33,7 @@ export interface DiagramAgentConfig {
 
   /**
    * The specific GPT model to be used by the agent.
-   * @default 'gpt-4o'
+   * @default 'gpt-5-mini'
    */
   model?: string;
 

@@ -62,7 +62,7 @@ export class D2Agent implements DiagramAgent {
     this.agent = new Agent({
       name: "D2 Diagram Agent",
       instructions: systemPrompt,
-      model: config.model || "gpt-4o",
+      model: config.model || "gpt-5-mini",
       tools: [replaceCanvasTool],
     });
   }
