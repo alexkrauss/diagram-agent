@@ -28,7 +28,7 @@ import { D2Agent } from "../D2Agent";
  */
 function createTestAgent(
   callback: (event: AgentEvent) => void,
-  renderFunction: RenderFunction
+  renderFunction: RenderFunction,
 ): DiagramAgent {
   const apiKey = process.env.OPENAI_API_KEY;
 
@@ -60,16 +60,17 @@ describe("Sequence Diagrams Benchmark", () => {
           '- Message 1: Alice sends to Bob with label "What does it mean to be well-adjusted?"\n' +
           '- Message 2: Bob sends to Alice with label "The ability to play bridge or golf as if they were games."\n' +
           "\n" +
-          "Messages must appear in this exact order."
+          "Messages must appear in this exact order.",
       );
 
       agent.criteria(
-        "The output is a sequence diagram with actors Alice and Bob.",
+        "The output is a UML sequence diagram.",
+        "There are two actors, Alice and Bob.",
         "Two messages are shown in the specified order: Alice to Bob with the well-adjusted question, then Bob to Alice with the bridge or golf response.",
         "Message directionality matches the conversation flow.",
         "No extra actors or messages are added.",
       );
-    }
+    },
   );
 
   /**
@@ -91,7 +92,7 @@ describe("Sequence Diagrams Benchmark", () => {
           "- Bob's activation period ends\n" +
           '- Message 4: Bob sends to Alice with label "Send response"\n' +
           "\n" +
-          "Use spans to show Bob's activation period during messages 2 and 3."
+          "Use spans to show Bob's activation period during messages 2 and 3.",
       );
 
       agent.criteria(
@@ -101,7 +102,7 @@ describe("Sequence Diagrams Benchmark", () => {
         "Bob shows an activation span covering the middle two messages (Query data and Return results).",
         "Message directions and ordering match the prompt.",
       );
-    }
+    },
   );
 
   /**
@@ -125,7 +126,7 @@ describe("Sequence Diagrams Benchmark", () => {
           '- Group 3: Label "Goodbye phase"\n' +
           '  - Message: Bob to Alice with label "Goodbye"\n' +
           "\n" +
-          "Groups must appear in this exact order. All messages within each group must maintain their specified order."
+          "Groups must appear in this exact order. All messages within each group must maintain their specified order.",
       );
 
       agent.criteria(
@@ -136,7 +137,7 @@ describe("Sequence Diagrams Benchmark", () => {
         "Goodbye phase contains Bob to Alice 'Goodbye'.",
         "Group boundaries are visible and message ordering is preserved.",
       );
-    }
+    },
   );
 
   /**
@@ -159,7 +160,7 @@ describe("Sequence Diagrams Benchmark", () => {
           '- Step 6: Website sends to Customer with label "Order confirmed"\n' +
           '- Step 7: Add a note on Website with text "Order complete"\n' +
           "\n" +
-          "All steps must appear in this exact order. The note in step 4 must appear between steps 3 and 5. The note in step 7 must appear after step 6."
+          "All steps must appear in this exact order. The note in step 4 must appear between steps 3 and 5. The note in step 7 must appear after step 6.",
       );
 
       agent.criteria(
@@ -169,6 +170,6 @@ describe("Sequence Diagrams Benchmark", () => {
         "A note on Website says 'Order complete' and appears after Order confirmed.",
         "The Website self-message is visually distinct as a self-call.",
       );
-    }
+    },
   );
 });

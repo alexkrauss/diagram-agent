@@ -203,13 +203,13 @@ describe('D2Agent', () => {
 
   describe('rendering and tool execution', () => {
     let mockRenderFunction: ReturnType<typeof vi.fn>;
-    let toolConfig: any;
+    let toolConfigs: Record<string, any>;
 
     beforeEach(async () => {
       // Capture the tool configuration when tool() is called
       const { tool } = await import('@openai/agents');
       vi.mocked(tool).mockImplementation((config) => {
-        toolConfig = config;
+        toolConfigs[config.name || 'unknown'] = config;
         return {
           type: 'function',
           name: config.name || 'mock_tool',
@@ -224,6 +224,7 @@ describe('D2Agent', () => {
 
       // Reset mocks
       capturedEvents = [];
+      toolConfigs = {};
       mockRenderFunction = vi.fn(async (_d2Content: string) => {
         return {
           svg: '<svg>mock</svg>',
@@ -242,6 +243,7 @@ describe('D2Agent', () => {
     });
 
     it('should set state to rendering when tool executes', async () => {
+      const replaceCanvasTool = () => toolConfigs['replace_canvas'];
       // Mock runAgent to simulate tool execution
       const { run: runAgent } = await import('@openai/agents');
       vi.mocked(runAgent).mockImplementation(async () => {
@@ -250,7 +252,7 @@ describe('D2Agent', () => {
 
         // Simulate tool execution by calling the execute function
         const d2Content = 'A -> B';
-        await toolConfig.execute({ content: d2Content });
+        await replaceCanvasTool().execute({ content: d2Content });
 
         // During/after tool execution
         const state = agent.getState();
@@ -272,7 +274,7 @@ describe('D2Agent', () => {
 
       vi.mocked(runAgent).mockImplementation(async () => {
         // Execute the tool
-        await toolConfig.execute({ content: d2Content });
+        await toolConfigs['replace_canvas'].execute({ content: d2Content });
 
         return {
           output: [],
@@ -292,7 +294,7 @@ describe('D2Agent', () => {
       const d2Content = 'X -> Y';
 
       vi.mocked(runAgent).mockImplementation(async () => {
-        await toolConfig.execute({ content: d2Content });
+        await toolConfigs['replace_canvas'].execute({ content: d2Content });
 
         return {
           output: [],
@@ -316,7 +318,7 @@ describe('D2Agent', () => {
       const d2Content = 'server -> database';
 
       vi.mocked(runAgent).mockImplementation(async () => {
-        await toolConfig.execute({ content: d2Content });
+        await toolConfigs['replace_canvas'].execute({ content: d2Content });
 
         return {
           output: [],
@@ -338,7 +340,7 @@ describe('D2Agent', () => {
 
       let toolResult: any;
       vi.mocked(runAgent).mockImplementation(async () => {
-        toolResult = await toolConfig.execute({ content: d2Content });
+        toolResult = await toolConfigs['replace_canvas'].execute({ content: d2Content });
 
         return {
           output: [],
@@ -368,7 +370,7 @@ describe('D2Agent', () => {
 
       let toolResult: any;
       vi.mocked(runAgent).mockImplementation(async () => {
-        toolResult = await toolConfig.execute({ content: d2Content });
+        toolResult = await toolConfigs['replace_canvas'].execute({ content: d2Content });
 
         return {
           output: [],
@@ -390,7 +392,7 @@ describe('D2Agent', () => {
       const d2Content = 'user -> system';
 
       vi.mocked(runAgent).mockImplementation(async () => {
-        await toolConfig.execute({ content: d2Content });
+        await toolConfigs['replace_canvas'].execute({ content: d2Content });
 
         return {
           output: [],
@@ -415,7 +417,7 @@ describe('D2Agent', () => {
       const d2Content = 'A -> B';
 
       vi.mocked(runAgent).mockImplementation(async () => {
-        await toolConfig.execute({ content: d2Content });
+        await toolConfigs['replace_canvas'].execute({ content: d2Content });
 
         return {
           output: [],
@@ -448,7 +450,7 @@ describe('D2Agent', () => {
       const d2Content = 'invalid syntax {{}}';
 
       vi.mocked(runAgent).mockImplementation(async () => {
-        await toolConfig.execute({ content: d2Content });
+        await toolConfigs['replace_canvas'].execute({ content: d2Content });
 
         return {
           output: [],
@@ -476,7 +478,7 @@ describe('D2Agent', () => {
       const d2Content = 'A -> B';
 
       vi.mocked(runAgent).mockImplementation(async () => {
-        await toolConfig.execute({ content: d2Content });
+        await toolConfigs['replace_canvas'].execute({ content: d2Content });
 
         return {
           output: [],
@@ -505,7 +507,7 @@ describe('D2Agent', () => {
       const d2Content = 'A -> B';
 
       vi.mocked(runAgent).mockImplementation(async () => {
-        await toolConfig.execute({ content: d2Content });
+        await toolConfigs['replace_canvas'].execute({ content: d2Content });
 
         // State should be rendering during tool execution
         expect(agent.getState().status).toBe('rendering');

@@ -14,6 +14,7 @@ import {
   AgentState,
 } from "./DiagramAgent";
 import { createReplaceCanvasTool } from "./tools/replaceCanvasTool";
+import { createContextTool } from "./tools/contextTool";
 import systemPrompt from "./system_prompt.md?raw";
 
 export class D2Agent implements DiagramAgent {
@@ -57,13 +58,14 @@ export class D2Agent implements DiagramAgent {
         canvasUpdateId: canvasUpdateId,
       });
     }, config.renderFunction, (event) => this.emit(event));
+    const contextTool = createContextTool();
 
     // Create agent with instructions and tools
     this.agent = new Agent({
       name: "D2 Diagram Agent",
       instructions: systemPrompt,
       model: config.model || "gpt-5-mini",
-      tools: [replaceCanvasTool],
+      tools: [replaceCanvasTool, contextTool],
     });
   }
 
