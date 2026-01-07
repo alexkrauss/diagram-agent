@@ -2,6 +2,30 @@
 
 Sequence diagrams are D2 objects with `shape: sequence_diagram`. Order matters inside the diagram (actors and messages appear in the order they are declared).
 
+Do not use Mermaid-style `sequence_diagram` blocks or `actor`/`participant` keywords. Actors are plain keys (optionally relabeled). The literal `sequence_diagram` should only appear as a value of `shape:`.
+
+```d2
+checkout: {
+  shape: sequence_diagram
+  customer: Customer
+  website: Website
+  customer -> website: Submit order
+}
+```
+
+Avoid Mermaid-only keywords like `activate`, `deactivate`, `note`, or `span`. Use D2 spans and notes (nested objects) instead.
+
+```d2
+# Wrong
+sequence_diagram: {
+  Alice -> Bob: Hello
+}
+
+# Right
+shape: sequence_diagram
+Alice -> Bob: Hello
+```
+
 ## Basic example
 
 ```d2
@@ -20,6 +44,37 @@ a; b; c; d
 c -> d
 d -> a
 b -> d
+```
+
+Use labels to preserve capitalization from the prompt.
+
+```d2
+shape: sequence_diagram
+alice: Alice
+bob: Bob
+alice -> bob: Hello
+```
+
+## Scoping
+
+Actors inside nested blocks still refer to the same top-level actors in the sequence diagram.
+
+```d2
+Office chatter: {
+  shape: sequence_diagram
+  alice: Alice
+  bob: Bobby
+  awkward small talk: {
+    alice -> bob: uhm, hi
+    bob -> alice: oh, hello
+    icebreaker attempt: {
+      alice -> bob: what did you have for lunch?
+    }
+    unfortunate outcome: {
+      bob -> alice: that's personal
+    }
+  }
+}
 ```
 
 ## Groups
@@ -42,7 +97,7 @@ life advice: {
 
 ## Spans (activation boxes)
 
-Define spans by connecting nested objects on an actor.
+Define spans by connecting nested objects on an actor. Spans appear where they are declared, so order them alongside messages.
 
 ```d2
 shape: sequence_diagram
@@ -55,7 +110,7 @@ alice.t2 <- bob.a
 
 ## Notes
 
-Notes are nested objects on an actor without connections.
+Notes are nested objects on an actor without connections. Place them in sequence order to control where they appear. Do not create standalone note shapes.
 
 ```d2
 shape: sequence_diagram

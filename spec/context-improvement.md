@@ -61,3 +61,7 @@ jq -r '.tests[]
 3. Update `spec/docs-preparation.md` with extraction steps.
 4. Run `npm run eval` and compare deltas.
 5. Record findings in `plan/agent-refinement-findings.md`.
+
+Reminder: Always run `npm run eval` and interpret the findings. You are done when
+marginal returns of optimization become small. Then, analyze possible reasons why
+this might be the case. Present the hypotheses to the user.

@@ -1,6 +1,6 @@
 # UML classes
 
-Use `shape: class`. Each key is a field or method.
+Use `shape: class`. Each key is a field or method. Do not use `fields:`/`methods:` blocks or `extends:`; model relationships with normal connections and labels.
 
 - Field: `name: Type`
 - Method: key contains `(` and its value is the return type
@@ -13,11 +13,42 @@ MyClass: {
   field: "[]string"
   method(a uint64): (x, y int)
 }
+
+Dog: {
+  shape: class
+  bark(): void
+}
+
+Dog -> MyClass: inherits
+```
+
+## Inheritance and relationships
+
+Use normal D2 connections (optionally labeled) for inheritance or composition.
+Avoid UML-only symbols like `*--`, `o--`, or `extends:`.
+
+```d2
+Animal: {
+  shape: class
+  name: string
+}
+
+Dog: {
+  shape: class
+  bark(): void
+}
+
+Dog -> Animal: inherits
+```
+
+```d2
+Order -> Product: contains
 ```
 
 ## Visibility
 
 Prefixes indicate visibility: `+` public, `-` private, `#` protected.
+Prefixes apply to fields and methods with no space; escape `#` as `\#` to avoid comment parsing.
 
 ```d2
 D2 Parser: {

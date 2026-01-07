@@ -16,6 +16,7 @@ Read Replica 1 -- Read Replica 2
 
 ```d2
 Read Replica 1 -- Read Replica 2: Kept in sync
+Read Replica 1 <-> Read Replica 2: Active-active
 ```
 
 ## Use keys, not labels
