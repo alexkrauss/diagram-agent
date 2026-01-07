@@ -48,14 +48,35 @@ Order -> Product: contains
 ## Visibility
 
 Prefixes indicate visibility: `+` public, `-` private, `#` protected.
+Omitting the prefix means default (package/internal) visibility—this is different from public.
 Prefixes apply to fields and methods with no space; escape `#` as `\#` to avoid comment parsing.
+
+```d2
+Employee: {
+  shape: class
+
+  # Public fields: use + prefix
+  +name: string
+
+  # Private fields: use - prefix
+  -salary: float
+
+  # Protected fields: use \# prefix (escape the #)
+  \#department: string
+
+  # Default visibility: NO prefix (not public, not private)
+  employeeId: int
+}
+```
 
 ```d2
 D2 Parser: {
   shape: class
 
-  # Default visibility is + so no need to specify.
+  # Public field
   +reader: io.RuneReader
+
+  # Default visibility (no prefix)
   readerPos: d2ast.Position
 
   # Private field.

@@ -85,17 +85,38 @@ users -> clouds.aws.load_balancer
 users -> clouds.gcloud.auth
 ```
 
-## Reference parent
+## Sibling containers
 
-Use `_` to reference the parent container.
+Containers at the same level are siblings. Define them as separate top-level blocks.
 
 ```d2
+# christmas and birthdays are siblings at the same level
 christmas: {
   presents
 }
+
 birthdays: {
   presents
-  _.christmas.presents -> presents: regift
-  _.christmas.style.fill: "#ACE1AF"
+}
+
+# Connect across siblings
+christmas.presents -> birthdays.presents: regift
+christmas.style.fill: "#ACE1AF"
+```
+
+## Reference parent
+
+Inside a container, use `_` to reference the parent scope.
+
+```d2
+clouds: {
+  aws: {
+    api
+  }
+  gcloud: {
+    auth
+    # Reference sibling container through parent
+    auth -> _.aws.api
+  }
 }
 ```

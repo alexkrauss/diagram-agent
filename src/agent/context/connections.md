@@ -1,15 +1,23 @@
 # Connections
 
-Connections define relationships between shapes. Valid connection operators are `--`, `->`, `<-`, `<->`.
+Connections define relationships between shapes. Valid connection operators:
+
+- `->` directed (one-way arrow)
+- `<-` directed (reverse arrow)
+- `<->` **bidirectional** (arrows on both ends, for two-way relationships like replication)
+- `--` undirected (no arrows, for associations)
 
 If you reference an undeclared shape in a connection, the shape is created.
 
 ```d2
-Write Replica Canada <-> Write Replica Australia
+# Bidirectional: arrows on both ends (e.g., mutual sync, replication)
+Primary Database <-> Replica Database: Replication
 
+# Directed: one-way arrow
 Read Replica <- Master
 
-Read Replica 1 -- Read Replica 2
+# Undirected: no arrows (association, no direction implied)
+Read Replica 1 -- Read Replica 2: Sync status
 ```
 
 ## Labels

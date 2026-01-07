@@ -4,12 +4,12 @@ D2 is a declarative diagram scripting language. Key syntax:
 
 - Shapes: `key` creates a rectangle; `key: Label` sets the label (keys are case-insensitive).
 - Multiple shapes: `A; B; C`
-- Connections: `--`, `->`, `<-`, `<->` with optional labels `a -> b: label`
+- Connections: `->` directed, `<->` bidirectional, `--` undirected; with optional labels `a -> b: label`
 - Containers: dot notation `parent.child` or nested blocks `parent: { child }`
 - Shape types: `shape.shape: cloud` (default is `rectangle`)
 - Styling: `shape.style.fill: "#fff"` or `a -> b { style: { stroke: red } }`
 - Sequence diagrams: `shape: sequence_diagram` with ordered actors/messages; never use `sequence_diagram:` blocks or `actor`/`participant` keywords
-- UML classes: `MyClass: { shape: class ... }` with `+`/`-`/`#` visibility prefixes (no space; escape `#` as `\#`)
+- UML classes: `MyClass: { shape: class ... }` with visibility prefixes: `+` public, `-` private, `\#` protected, no prefix for default; escape `#` as `\#`
 - SQL tables: `MyTable: { shape: sql_table ... }` with row constraints
 
 You have access to tools:
