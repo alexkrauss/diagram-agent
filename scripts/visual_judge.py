@@ -3,6 +3,7 @@
 # requires-python = ">=3.10"
 # dependencies = [
 #   "google-genai>=0.6.0",
+#   "json-repair>=0.55.0",
 # ]
 # ///
 import argparse
@@ -16,6 +17,8 @@ import threading
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Tuple
+
+from json_repair import repair_json
 
 JUDGE_MODEL = "gemini-2.5-flash-lite"
 
@@ -98,9 +101,7 @@ def gemini_generate_content(
     image_bytes = base64.b64decode(image_b64)
     config = None
     if force_json:
-        config = types.GenerateContentConfig(
-            response_mime_type="application/json"
-        )
+        config = types.GenerateContentConfig(response_mime_type="application/json")
     kwargs = {}
     if config is not None:
         kwargs["config"] = config
@@ -115,38 +116,24 @@ def gemini_generate_content(
     return getattr(response, "text", "") or ""
 
 
-def judge_with_gemini(model: str, prompt: str, image_b64: str) -> JudgeResult:
+def judge_with_gemini(model: str, prompt: str, image_b64: str) -> Tuple[JudgeResult, str | None]:
     raw = gemini_generate_content(model, prompt, image_b64, force_json=True)
     return parse_judge_result(raw)
 
 
-def extract_json_blob(text: str) -> str:
-    stripped = text.strip()
-    if stripped.startswith("```"):
-        fence_start = stripped.find("\n")
-        fence_end = stripped.rfind("```")
-        if fence_start != -1 and fence_end != -1 and fence_end > fence_start:
-            stripped = stripped[fence_start + 1 : fence_end].strip()
-    if stripped.startswith("{") and stripped.endswith("}"):
-        return stripped
-    first = stripped.find("{")
-    last = stripped.rfind("}")
-    if first != -1 and last != -1 and last > first:
-        return stripped[first : last + 1]
-    return stripped
-
-
-def parse_judge_result(raw: str) -> JudgeResult:
+def parse_judge_result(raw: str) -> Tuple[JudgeResult, str | None]:
+    """Parse judge result. Returns (result, parsing_error_or_none)."""
     try:
-        data = json.loads(extract_json_blob(raw))
+        data = json.loads(repair_json(raw.strip()))
         score = int(data.get("score", 0))
         rationale = str(data.get("rationale", "")).strip()
-        return JudgeResult(score=1 if score == 1 else 0, rationale=rationale)
+        return JudgeResult(score=1 if score == 1 else 0, rationale=rationale), None
     except Exception:
-        return JudgeResult(score=0, rationale=f"Unparseable response: {raw[:500]}")
+        return JudgeResult(score=0, rationale=f"Unparseable response: {raw[:500]}"), raw
 
 
-def parse_batch_judge_result(raw: str, expected: int) -> List[JudgeResult]:
+def parse_batch_judge_result(raw: str, expected: int) -> Tuple[List[JudgeResult], str | None]:
+    """Parse batch judge result. Returns (results, parsing_error_or_none)."""
     def clamp_score(value: Any) -> int:
         try:
             score = int(value)
@@ -155,7 +142,7 @@ def parse_batch_judge_result(raw: str, expected: int) -> List[JudgeResult]:
         return 1 if score == 1 else 0
 
     try:
-        data = json.loads(extract_json_blob(raw))
+        data = json.loads(repair_json(raw.strip()))
         if isinstance(data, list):
             results = data
         else:
@@ -183,26 +170,24 @@ def parse_batch_judge_result(raw: str, expected: int) -> List[JudgeResult]:
             elif ordered:
                 parsed.append(ordered.pop(0))
             else:
-                parsed.append(
-                    JudgeResult(score=0, rationale="Missing batch result.")
-                )
-        return parsed
+                parsed.append(JudgeResult(score=0, rationale="Missing batch result."))
+        return parsed, None
     except Exception:
         fallback = JudgeResult(score=0, rationale=f"Unparseable response: {raw[:500]}")
-        return [fallback for _ in range(expected)]
+        return [fallback for _ in range(expected)], raw
 
 
 def run_judge_call(
-    judge_fn: Callable[[str, str, str], JudgeResult],
+    judge_fn: Callable[[str, str, str], Tuple[JudgeResult, str | None]],
     model: str,
     prompt: str,
     criterion: str,
     image_b64: str,
-) -> Tuple[JudgeResult, float]:
+) -> Tuple[JudgeResult, float, str | None]:
     judge_prompt = build_judge_prompt(prompt, criterion)
     start = time.monotonic()
-    result = judge_fn(model, judge_prompt, image_b64)
-    return result, time.monotonic() - start
+    result, parse_error = judge_fn(model, judge_prompt, image_b64)
+    return result, time.monotonic() - start, parse_error
 
 
 def run_judge_batch_call(
@@ -210,13 +195,13 @@ def run_judge_batch_call(
     prompt: str,
     criteria: List[str],
     image_b64: str,
-) -> Tuple[List[JudgeResult], float]:
+) -> Tuple[List[JudgeResult], float, str | None]:
     judge_prompt = build_batch_judge_prompt(prompt, criteria)
     start = time.monotonic()
     raw = gemini_generate_content(model, judge_prompt, image_b64, force_json=True)
     duration = time.monotonic() - start
-    parsed = parse_batch_judge_result(raw, len(criteria))
-    return parsed, duration
+    parsed, parse_error = parse_batch_judge_result(raw, len(criteria))
+    return parsed, duration, parse_error
 
 
 def evaluate_dataset(
@@ -250,6 +235,7 @@ def evaluate_dataset(
     progress_state = {"done": 0, "start": time.monotonic()}
     report_every = 1 if total_criteria <= 50 else max(1, total_criteria // 50)
     latency_stats = LatencyStats()
+    parsing_errors: List[str] = []
     progress_lock = threading.Lock()
 
     def format_latency(latency: LatencyStats) -> str:
@@ -391,8 +377,11 @@ def evaluate_dataset(
             for future in concurrent.futures.as_completed(future_map):
                 task = future_map[future]
                 try:
-                    result, duration = future.result()
+                    result, duration, parse_error = future.result()
                     latency_stats.record(duration)
+                    if parse_error is not None:
+                        with progress_lock:
+                            parsing_errors.append(parse_error)
                     if task.get("batch"):
                         entries = [
                             {
@@ -485,6 +474,14 @@ def evaluate_dataset(
             f"max={max(latency_stats.samples):.2f}s",
             flush=True,
         )
+
+    # Write parsing errors to file
+    parsing_errors_path = os.path.join(eval_results_dir, "parsing_errors.json")
+    with open(parsing_errors_path, "w", encoding="utf-8") as f:
+        json.dump(parsing_errors, f, indent=2)
+    if parsing_errors:
+        print(f"Wrote {len(parsing_errors)} parsing errors to {parsing_errors_path}")
+
     return output
 
 
