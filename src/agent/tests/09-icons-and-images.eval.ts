@@ -141,4 +141,55 @@ describe("DiagramAgent - Icons and Images", () => {
       );
     }
   );
+
+  /**
+   * Test Scenario 5: Using find_icon Tool for AWS Services
+   *
+   * Test the agent's ability to use the find_icon tool to discover and
+   * use appropriate icons for AWS services.
+   */
+  conversation(
+    "Find and Use Icons for AWS Services",
+    createTestAgent,
+    async (agent) => {
+      // ACTION: Send message asking for icons without specifying URLs
+      await agent.send(
+        "Create a diagram showing an S3 bucket connected to a Lambda function with appropriate icons. " +
+          "Find suitable icons for these AWS services."
+      );
+
+      agent.criteria(
+        "The agent used the find_icon tool to search for S3 and/or Lambda icons.",
+        "The diagram contains an S3 bucket shape with an icon from icons.terrastruct.com.",
+        "The diagram contains a Lambda function shape with an icon from icons.terrastruct.com.",
+        "The S3 bucket and Lambda function are connected with an arrow.",
+      );
+    }
+  );
+
+  /**
+   * Test Scenario 6: Using find_icon Tool for DevOps Pipeline
+   *
+   * Test the agent's ability to use the find_icon tool to discover icons
+   * for a DevOps/CI/CD architecture diagram.
+   */
+  conversation(
+    "Find and Use Icons for DevOps Pipeline",
+    createTestAgent,
+    async (agent) => {
+      // ACTION: Send message asking for a DevOps diagram with icons
+      await agent.send(
+        "Draw a system with a GitHub repo, CI/CD pipeline, and cloud deployment using icons. " +
+          "Use the find_icon tool to discover appropriate icons for each component."
+      );
+
+      agent.criteria(
+        "The agent used the find_icon tool to search for relevant icons.",
+        "The diagram contains a GitHub or git repository shape with an appropriate icon.",
+        "The diagram contains CI/CD or pipeline components with appropriate icons.",
+        "The diagram contains cloud deployment shapes with appropriate icons.",
+        "The components are connected to show the flow from repo to deployment.",
+      );
+    }
+  );
 });
