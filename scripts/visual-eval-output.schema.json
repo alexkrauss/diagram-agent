@@ -63,8 +63,8 @@
                   }
                 },
                 "pngPath": {
-                  "type": "string",
-                  "description": "Relative path to the PNG image that was evaluated"
+                  "type": ["string", "null"],
+                  "description": "Relative path to the PNG image that was evaluated, or null if no image was produced"
                 },
                 "criteria": {
                   "type": "array",
