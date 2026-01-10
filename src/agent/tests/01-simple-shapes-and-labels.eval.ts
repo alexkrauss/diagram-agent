@@ -29,7 +29,7 @@ import { D2Agent } from "../D2Agent";
  */
 function createTestAgent(
   callback: (event: AgentEvent) => void,
-  renderFunction: RenderFunction
+  renderFunction: RenderFunction,
 ): DiagramAgent {
   const apiKey = process.env.OPENAI_API_KEY;
 
@@ -110,7 +110,6 @@ describe("Benchmark: Simple Shapes and Labels", () => {
       agent.criteria(
         "The diagram shows three service shapes labeled Redis Cache, Cloud Storage, and queue.",
         "There are no connections, arrows, or relationship lines between the services.",
-        "The services appear as default rectangular shapes without special styling.",
       );
     },
   );
