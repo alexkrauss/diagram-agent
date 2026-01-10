@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
       // Run tests in main thread to share memory with reporter
       threads: false,
       // Increase timeout for LLM agent tests
-      testTimeout: 30000, // 30 seconds
+      testTimeout: 120000, // 30 seconds
       env: {
         // Make all environment variables from .env available to tests
         ...env,
