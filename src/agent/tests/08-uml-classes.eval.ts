@@ -59,7 +59,7 @@ describe("DiagramAgent - UML Class Diagrams", () => {
 
       agent.criteria(
         "The diagram includes a Person class rendered as a UML class shape.",
-        "Person has fields name (string), age (int or integer), and email (string) with default visibility.",
+        "Person has fields name (string), age (int or integer), and email (string). Visibility markers (such as + for public) may or may not be shown.",
         "No extra fields, methods, or classes are introduced.",
       );
     },

@@ -102,8 +102,8 @@ describe("Benchmark: Containers with Nesting", () => {
         "The diagram includes a top-level container labeled clouds with child containers Amazon Web Services and Google Cloud Platform.",
         "Amazon Web Services contains load_balancer and db shapes; Google Cloud Platform contains auth.",
         "A users shape exists at the top level outside the clouds container.",
-        "Connections exist from load_balancer to db, auth to db, and from Google Cloud Platform to Amazon Web Services.",
-        "Users connects to load_balancer and auth across container boundaries.",
+        "Inside the clouds container, connections exist from load_balancer to db, from auth to db, and from Google Cloud Platform to Amazon Web Services.",
+        "Users connects to load_balancer (inside Amazon Web Services) and to auth (inside Google Cloud Platform).",
       );
     },
   );

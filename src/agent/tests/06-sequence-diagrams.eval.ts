@@ -99,7 +99,7 @@ describe("Sequence Diagrams Benchmark", () => {
         "The diagram is a UML sequence diagram.",
         "The diagram has actors Alice, Bob, and Charlie.",
         "Four messages appear in order: Alice to Bob (Send request), Bob to Charlie (Query data), Charlie to Bob (Return results), and Bob to Alice (Send response).",
-        "Bob shows an activation span covering the middle two messages (Query data and Return results).",
+        "Bob shows an activation span covering exactly the middle two messages (Query data and Return results).",
         "Message directions and ordering match the prompt.",
       );
     },
