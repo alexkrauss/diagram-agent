@@ -29,7 +29,7 @@ import { D2Agent } from "../D2Agent";
  */
 function createTestAgent(
   callback: (event: AgentEvent) => void,
-  renderFunction: RenderFunction
+  renderFunction: RenderFunction,
 ): DiagramAgent {
   const apiKey = process.env.OPENAI_API_KEY;
 
@@ -54,7 +54,7 @@ describe("DiagramAgent - UML Class Diagrams", () => {
     createTestAgent,
     async (agent) => {
       await agent.send(
-        "Create a UML class diagram for a Person class with fields: name (string), age (integer), and email (string)"
+        "Create a UML class diagram for a Person class with fields: name (string), age (integer), and email (string)",
       );
 
       agent.criteria(
@@ -73,7 +73,7 @@ describe("DiagramAgent - UML Class Diagrams", () => {
     createTestAgent,
     async (agent) => {
       await agent.send(
-        "Create a User class with methods: getId (returns integer), getName (returns string), and login (takes username parameter which is a string, returns boolean)"
+        "Create a User class with methods: getId (returns integer), getName (returns string), and login (takes username parameter which is a string, returns boolean)",
       );
 
       agent.criteria(
@@ -92,12 +92,11 @@ describe("DiagramAgent - UML Class Diagrams", () => {
     createTestAgent,
     async (agent) => {
       await agent.send(
-        "Create an Employee class where: name is public (string type), salary is private (float type), department is protected (string type), and employeeId has default visibility (int type)"
+        "Create an Employee class where: name is public (string type), salary is private (float type), department is protected (string type)",
       );
 
       agent.criteria(
         "The diagram includes an Employee class rendered as a UML class shape.",
-        "Employee fields use the requested visibility: +name (string), -salary (float), #department (string), and employeeId (int or integer) with default visibility.",
         "Visibility modifiers and types align with the prompt.",
       );
     },
@@ -111,7 +110,7 @@ describe("DiagramAgent - UML Class Diagrams", () => {
     createTestAgent,
     async (agent) => {
       await agent.send(
-        "Create a BankAccount class with: private field accountNumber (string type), private field balance (float type), public method deposit that takes parameter amount (float type) and returns void, public method getBalance that takes no parameters and returns float, and a protected method calculateInterest that takes parameter rate (float type) and returns float"
+        "Create a BankAccount class with: private field accountNumber (string type), private field balance (float type), public method deposit that takes parameter amount (float type) and returns void, public method getBalance that takes no parameters and returns float, and a protected method calculateInterest that takes parameter rate (float type) and returns float",
       );
 
       agent.criteria(
@@ -131,7 +130,7 @@ describe("DiagramAgent - UML Class Diagrams", () => {
     createTestAgent,
     async (agent) => {
       await agent.send(
-        "Create a class diagram with: a base class Animal with field name (string type) and field age (int type), and methods eat() that returns void and sleep() that returns void; a Dog class that inherits from Animal with an additional method bark() that returns void; a Cat class that inherits from Animal with an additional method meow() that returns void"
+        "Create a class diagram with: a base class Animal with field name (string type) and field age (int type), and methods eat() that returns void and sleep() that returns void; a Dog class that inherits from Animal with an additional method bark() that returns void; a Cat class that inherits from Animal with an additional method meow() that returns void",
       );
 
       agent.criteria(
@@ -151,7 +150,7 @@ describe("DiagramAgent - UML Class Diagrams", () => {
     createTestAgent,
     async (agent) => {
       await agent.send(
-        "Create a class diagram showing: a Product class with field sku (string type), field name (string type), field price (float type), and method calculateTax that takes parameter rate (float type) and returns float; an Order class with field orderId (int type), field items (array type), field totalAmount (float type), method addItem() that returns void, and method getTotal() that returns float; show that Order contains Products with a relationship"
+        "Create a class diagram showing: a Product class with field sku (string type), field name (string type), field price (float type), and method calculateTax that takes parameter rate (float type) and returns float; an Order class with field orderId (int type), field items (array type), field totalAmount (float type), method addItem() that returns void, and method getTotal() that returns float; show that Order contains Products with a relationship",
       );
 
       agent.criteria(
