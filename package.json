@@ -9,7 +9,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "eval:exec": "vitest run --config vitest.eval.config.ts",
-    "eval:judge": "uv run scripts/visual_judge.py --batch-criteria",
+    "eval:judge": "uv run scripts/visual_judge.py",
     "eval:report": "uv run scripts/visual_report.py",
     "eval": "npm run eval:exec && npm run eval:judge && npm run eval:report",
     "check": "npm run typecheck && npm run test"

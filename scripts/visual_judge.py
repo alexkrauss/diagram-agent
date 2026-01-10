@@ -17,12 +17,13 @@ import sys
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple, Optional
 
 from json_repair import repair_json
 from jsonschema import Draft7Validator, ValidationError
 
 JUDGE_MODEL = "gemini-3-flash-preview"
+DEFAULT_PARALLELISM = 50
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -88,6 +89,104 @@ class LatencyStats:
             return 0.0
         return statistics.median(self.samples)
 
+    def p90(self) -> float:
+        if not self.samples:
+            return 0.0
+        sorted_samples = sorted(self.samples)
+        idx = int(len(sorted_samples) * 0.9)
+        idx = min(idx, len(sorted_samples) - 1)
+        return sorted_samples[idx]
+
+    def max(self) -> float:
+        if not self.samples:
+            return 0.0
+        return max(self.samples)
+
+
+@dataclass
+class ProgressState:
+    pending: int = 0
+    in_flight: int = 0
+    done: int = 0
+    start_time: float = field(default_factory=time.monotonic)
+
+
+class StatusReporter:
+    """Reports progress via an in-place status line that updates on events or timer."""
+
+    def __init__(
+        self,
+        total_requests: int,
+        latency_stats: LatencyStats,
+        update_interval: float = 1.0,
+    ):
+        self.total_requests = total_requests
+        self.latency_stats = latency_stats
+        self.update_interval = update_interval
+        self.state = ProgressState(pending=total_requests)
+        self.lock = threading.Lock()
+        self.stop_event = threading.Event()
+        self.timer_thread: Optional[threading.Thread] = None
+        self.last_line_len = 0
+
+    def start(self) -> None:
+        """Start the timer thread for periodic updates."""
+        if self.total_requests == 0:
+            return
+        self.timer_thread = threading.Thread(target=self._timer_loop, daemon=True)
+        self.timer_thread.start()
+        self._print_status()
+
+    def stop(self) -> None:
+        """Stop the timer thread and print final newline."""
+        self.stop_event.set()
+        if self.timer_thread:
+            self.timer_thread.join(timeout=2.0)
+        # Clear the status line
+        sys.stdout.write("\r" + " " * self.last_line_len + "\r")
+        sys.stdout.flush()
+
+    def _timer_loop(self) -> None:
+        while not self.stop_event.wait(self.update_interval):
+            self._print_status()
+
+    def on_request_start(self) -> None:
+        """Called when a request is sent to the API."""
+        with self.lock:
+            self.state.pending -= 1
+            self.state.in_flight += 1
+        self._print_status()
+
+    def on_request_complete(self) -> None:
+        """Called when a response is received from the API."""
+        with self.lock:
+            self.state.in_flight -= 1
+            self.state.done += 1
+        self._print_status()
+
+    def _format_latency(self) -> str:
+        stats = self.latency_stats
+        if stats.count == 0:
+            return "latency: n/a"
+        return (
+            f"avg={stats.mean():.2f}s p50={stats.median():.2f}s "
+            f"p90={stats.p90():.2f}s max={stats.max():.2f}s"
+        )
+
+    def _print_status(self) -> None:
+        with self.lock:
+            elapsed = time.monotonic() - self.state.start_time
+            status = (
+                f"[pending:{self.state.pending} in-flight:{self.state.in_flight} "
+                f"done:{self.state.done}/{self.total_requests}] "
+                f"{self._format_latency()} | elapsed: {elapsed:.1f}s"
+            )
+            # Pad with spaces to clear previous content
+            padded = status.ljust(self.last_line_len)
+            sys.stdout.write(f"\r{padded}")
+            sys.stdout.flush()
+            self.last_line_len = len(status)
+
 
 def load_visual_input(path: str) -> Dict[str, Any]:
     with open(path, "r", encoding="utf-8") as handle:
@@ -102,16 +201,6 @@ def write_json(path: str, payload: Dict[str, Any]) -> None:
 def read_png_as_base64(path: str) -> str:
     with open(path, "rb") as handle:
         return base64.b64encode(handle.read()).decode("ascii")
-
-
-def build_judge_prompt(prompt: str, criterion: str) -> str:
-    return (
-        "You are a strict visual judge. Determine whether the criterion is met by the image.\n\n"
-        f"Conversation context:\n{prompt}\n\n"
-        f"Criterion:\n{criterion}\n\n"
-        'Respond with raw JSON: {"score": 1 or 0, "rationale": "..."}\n'
-        "Return only the JSON object with no extra text or markdown. Do not use markdown embedding."
-    )
 
 
 def build_batch_judge_prompt(prompt: str, criteria: List[str]) -> str:
@@ -152,22 +241,6 @@ def gemini_generate_content(
         **kwargs,
     )
     return getattr(response, "text", "") or ""
-
-
-def judge_with_gemini(model: str, prompt: str, image_b64: str) -> Tuple[JudgeResult, str | None]:
-    raw = gemini_generate_content(model, prompt, image_b64, force_json=True)
-    return parse_judge_result(raw)
-
-
-def parse_judge_result(raw: str) -> Tuple[JudgeResult, str | None]:
-    """Parse judge result. Returns (result, parsing_error_or_none)."""
-    try:
-        data = json.loads(repair_json(raw.strip()))
-        score = int(data.get("score", 0))
-        rationale = str(data.get("rationale", "")).strip()
-        return JudgeResult(score=1 if score == 1 else 0, rationale=rationale), None
-    except Exception:
-        return JudgeResult(score=0, rationale=f"Unparseable response: {raw[:500]}"), raw
 
 
 def parse_batch_judge_result(raw: str, expected: int) -> Tuple[List[JudgeResult], str | None]:
@@ -215,29 +288,22 @@ def parse_batch_judge_result(raw: str, expected: int) -> Tuple[List[JudgeResult]
         return [fallback for _ in range(expected)], raw
 
 
-def run_judge_call(
-    judge_fn: Callable[[str, str, str], Tuple[JudgeResult, str | None]],
-    model: str,
-    prompt: str,
-    criterion: str,
-    image_b64: str,
-) -> Tuple[JudgeResult, float, str | None]:
-    judge_prompt = build_judge_prompt(prompt, criterion)
-    start = time.monotonic()
-    result, parse_error = judge_fn(model, judge_prompt, image_b64)
-    return result, time.monotonic() - start, parse_error
-
-
 def run_judge_batch_call(
     model: str,
     prompt: str,
     criteria: List[str],
     image_b64: str,
+    on_start: Optional[Callable[[], None]] = None,
+    on_complete: Optional[Callable[[], None]] = None,
 ) -> Tuple[List[JudgeResult], float, str | None]:
     judge_prompt = build_batch_judge_prompt(prompt, criteria)
+    if on_start:
+        on_start()
     start = time.monotonic()
     raw = gemini_generate_content(model, judge_prompt, image_b64, force_json=True)
     duration = time.monotonic() - start
+    if on_complete:
+        on_complete()
     parsed, parse_error = parse_batch_judge_result(raw, len(criteria))
     return parsed, duration, parse_error
 
@@ -247,9 +313,7 @@ def evaluate_dataset(
     eval_results_dir: str,
     *,
     model: str = JUDGE_MODEL,
-    judge_fn: Callable[[str, str, str], JudgeResult] = judge_with_gemini,
-    parallelism: int = 10,
-    batch_criteria: bool = False,
+    parallelism: int = DEFAULT_PARALLELISM,
     image_loader: Callable[[str], str] = read_png_as_base64,
 ) -> Dict[str, Any]:
     output = dict(data)
@@ -270,45 +334,15 @@ def evaluate_dataset(
     else:
         print("No criteria found to evaluate.", flush=True)
 
-    progress_state = {"done": 0, "start": time.monotonic()}
-    report_every = 1 if total_criteria <= 50 else max(1, total_criteria // 50)
     latency_stats = LatencyStats()
     parsing_errors: List[str] = []
-    progress_lock = threading.Lock()
-
-    def format_latency(latency: LatencyStats) -> str:
-        if latency.count == 0:
-            return "avg n/a"
-        return f"avg {latency.mean():.2f}s, p50 {latency.median():.2f}s"
-
-    def progress_cb(
-        state: Dict[str, Any],
-        total: int,
-        turn_index: int,
-        criterion_index: int,
-        criterion_count: int,
-        test_name: str,
-    ) -> None:
-        state["done"] += 1
-        done = state["done"]
-        elapsed = time.monotonic() - state["start"]
-        eta = (elapsed / done) * (total - done) if done else 0.0
-        if done == 1 or done == total or done % report_every == 0:
-            name = test_name or "Unnamed test"
-            pct = (done / total) * 100 if total else 100.0
-            print(
-                f"[{done}/{total} {pct:5.1f}%] ETA {eta:6.1f}s | "
-                f"{format_latency(latency_stats)} | {name} "
-                f"turn {turn_index} criterion {criterion_index}/{criterion_count}",
-                flush=True,
-            )
+    parsing_errors_lock = threading.Lock()
 
     tasks: List[Dict[str, Any]] = []
     turn_results_map: Dict[Tuple[int, int], List[Dict[str, Any] | None]] = {}
 
     for test_idx, test in enumerate(raw_tests):
         turns = []
-        test_name = test.get("fullName") or ""
         for turn_idx, turn in enumerate(test.get("turns", [])):
             criteria = turn.get("criteria", [])
             prompt = turn.get("prompt", "")
@@ -333,8 +367,8 @@ def evaluate_dataset(
 
             results: List[Dict[str, Any] | None] = [None] * len(criteria)
             if not png_path or not image_b64:
-                for idx, criterion in enumerate(criteria, start=1):
-                    results[idx - 1] = {
+                for idx, criterion in enumerate(criteria):
+                    results[idx] = {
                         "criterion": criterion,
                         "score": 0,
                         "rationale": image_error
@@ -344,83 +378,55 @@ def evaluate_dataset(
                             else "Missing image data."
                         ),
                     }
-                    with progress_lock:
-                        progress_cb(
-                            progress_state,
-                            total_criteria,
-                            turn.get("turnIndex") or 0,
-                            idx,
-                            len(criteria),
-                            test_name,
-                        )
                 turn_results_map[(test_idx, turn_idx)] = results
                 turns.append({**turn})
                 continue
 
-            if batch_criteria and criteria:
+            if criteria:
                 tasks.append(
                     {
                         "key": (test_idx, turn_idx),
                         "criteria": criteria,
                         "prompt": prompt,
                         "image_b64": image_b64,
-                        "turn_index": turn.get("turnIndex") or 0,
-                        "criterion_count": len(criteria),
-                        "test_name": test_name,
-                        "batch": True,
                     }
                 )
-            else:
-                for idx, criterion in enumerate(criteria, start=1):
-                    tasks.append(
-                        {
-                            "key": (test_idx, turn_idx),
-                            "criterion_index": idx - 1,
-                            "criterion": criterion,
-                            "prompt": prompt,
-                            "image_b64": image_b64,
-                            "turn_index": turn.get("turnIndex") or 0,
-                            "criterion_count": len(criteria),
-                            "test_name": test_name,
-                            "batch": False,
-                        }
-                    )
 
             turn_results_map[(test_idx, turn_idx)] = results
             turns.append({**turn})
         tests.append({**test, "turns": turns})
 
+    # Count total API requests (one per turn with criteria, batched)
+    total_requests = len(tasks)
+
+    # Set up status reporter
+    status_reporter = StatusReporter(total_requests, latency_stats)
+    start_time = time.monotonic()
+
     if tasks:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=parallelism) as executor:
-            future_map = {}
-            for task in tasks:
-                if task.get("batch"):
+        status_reporter.start()
+        try:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=parallelism) as executor:
+                future_map = {}
+                for task in tasks:
                     future = executor.submit(
                         run_judge_batch_call,
                         model,
                         task["prompt"],
                         task["criteria"],
                         task["image_b64"],
+                        status_reporter.on_request_start,
+                        status_reporter.on_request_complete,
                     )
-                else:
-                    future = executor.submit(
-                        run_judge_call,
-                        judge_fn,
-                        model,
-                        task["prompt"],
-                        task["criterion"],
-                        task["image_b64"],
-                    )
-                future_map[future] = task
-            for future in concurrent.futures.as_completed(future_map):
-                task = future_map[future]
-                try:
-                    result, duration, parse_error = future.result()
-                    latency_stats.record(duration)
-                    if parse_error is not None:
-                        with progress_lock:
-                            parsing_errors.append(parse_error)
-                    if task.get("batch"):
+                    future_map[future] = task
+                for future in concurrent.futures.as_completed(future_map):
+                    task = future_map[future]
+                    try:
+                        result, duration, parse_error = future.result()
+                        latency_stats.record(duration)
+                        if parse_error is not None:
+                            with parsing_errors_lock:
+                                parsing_errors.append(parse_error)
                         entries = [
                             {
                                 "criterion": criterion,
@@ -429,17 +435,8 @@ def evaluate_dataset(
                             }
                             for criterion, item in zip(task["criteria"], result)
                         ]
-                    else:
-                        entries = [
-                            {
-                                "criterion": task["criterion"],
-                                "score": result.score,
-                                "rationale": result.rationale,
-                            }
-                        ]
-                except Exception as exc:
-                    print(f"Unexpected judge error: {exc}", file=sys.stderr)
-                    if task.get("batch"):
+                    except Exception as exc:
+                        print(f"\nUnexpected judge error: {exc}", file=sys.stderr)
                         entries = [
                             {
                                 "criterion": criterion,
@@ -448,41 +445,15 @@ def evaluate_dataset(
                             }
                             for criterion in task["criteria"]
                         ]
-                    else:
-                        entries = [
-                            {
-                                "criterion": task["criterion"],
-                                "score": 0,
-                                "rationale": f"Unexpected judge error: {exc}",
-                            }
-                        ]
-                turn_key = task["key"]
-                results_list = turn_results_map.get(turn_key, [])
-                if task.get("batch"):
+                    turn_key = task["key"]
+                    results_list = turn_results_map.get(turn_key, [])
                     for idx, entry in enumerate(entries):
                         if results_list and idx < len(results_list):
                             results_list[idx] = entry
-                        with progress_lock:
-                            progress_cb(
-                                progress_state,
-                                total_criteria,
-                                task["turn_index"],
-                                idx + 1,
-                                task["criterion_count"],
-                                task["test_name"],
-                            )
-                else:
-                    if results_list and task["criterion_index"] < len(results_list):
-                        results_list[task["criterion_index"]] = entries[0]
-                    with progress_lock:
-                        progress_cb(
-                            progress_state,
-                            total_criteria,
-                            task["turn_index"],
-                            task["criterion_index"] + 1,
-                            task["criterion_count"],
-                            task["test_name"],
-                        )
+        finally:
+            status_reporter.stop()
+
+    total_time = time.monotonic() - start_time
 
     for test_idx, test in enumerate(tests):
         for turn_idx, turn in enumerate(test.get("turns", [])):
@@ -503,13 +474,14 @@ def evaluate_dataset(
 
     output["tests"] = tests
     output["judge_model"] = model
+
+    # Print final summary
     if latency_stats.count:
         print(
-            "Judge latency summary: "
-            f"n={latency_stats.count}, avg={latency_stats.mean():.2f}s, "
-            f"p50={latency_stats.median():.2f}s, "
-            f"min={min(latency_stats.samples):.2f}s, "
-            f"max={max(latency_stats.samples):.2f}s",
+            f"Judge completed: {latency_stats.count} requests, "
+            f"avg={latency_stats.mean():.2f}s, p50={latency_stats.median():.2f}s, "
+            f"p90={latency_stats.p90():.2f}s, max={latency_stats.max():.2f}s, "
+            f"total={total_time:.1f}s",
             flush=True,
         )
 
@@ -530,12 +502,7 @@ def main() -> None:
     parser.add_argument("--input", default="eval-results/visual-eval-input.json")
     parser.add_argument("--output", default="eval-results/visual-eval-output.json")
     parser.add_argument("--eval-results-dir", default="eval-results")
-    parser.add_argument("--parallelism", type=int, default=10)
-    parser.add_argument(
-        "--batch-criteria",
-        action="store_true",
-        help="Batch criteria per turn into a single judge call.",
-    )
+    parser.add_argument("--parallelism", type=int, default=DEFAULT_PARALLELISM)
     args = parser.parse_args()
 
     data = load_visual_input(args.input)
@@ -546,7 +513,6 @@ def main() -> None:
         data,
         args.eval_results_dir,
         parallelism=args.parallelism,
-        batch_criteria=args.batch_criteria,
     )
 
     print("Validating output against schema...", flush=True)
