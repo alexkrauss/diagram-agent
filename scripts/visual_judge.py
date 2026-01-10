@@ -20,7 +20,7 @@ from typing import Any, Callable, Dict, List, Tuple
 
 from json_repair import repair_json
 
-JUDGE_MODEL = "gemini-2.5-flash-lite"
+JUDGE_MODEL = "gemini-3-flash-preview"
 
 
 @dataclass
