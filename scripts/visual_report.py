@@ -13,13 +13,22 @@ def load_json(path: str) -> dict:
         return json.load(handle)
 
 
+def get_criterion_score(result: Dict[str, Any]) -> float:
+    """Get the score for a criterion, supporting both old and new format."""
+    # New format: summary_score (float 0-1)
+    if "summary_score" in result:
+        return float(result["summary_score"])
+    # Old format: score (int 0 or 1)
+    return float(result.get("score", 0))
+
+
 def compute_metrics(data: Dict[str, Any]) -> Dict[str, Any]:
     tests = data.get("tests", [])
     scenario_totals: Dict[str, Dict[str, int]] = {}
     turn_total = 0
     turn_success = 0
     criteria_total = 0
-    criteria_success = 0
+    criteria_success = 0.0  # Now a float for partial scores
 
     for test in tests:
         scenario = ""
@@ -40,10 +49,9 @@ def compute_metrics(data: Dict[str, Any]) -> Dict[str, Any]:
             turn_ok = True
             for result in judge_criteria:
                 criteria_total += 1
-                score = result.get("score")
-                if score == 1:
-                    criteria_success += 1
-                else:
+                score = get_criterion_score(result)
+                criteria_success += score
+                if score < 1.0:
                     turn_ok = False
             if turn_ok:
                 turn_success += 1
@@ -75,6 +83,7 @@ def render_html(data: Dict[str, Any]) -> str:
     summary = data.get("summary", {})
     metrics = compute_metrics(data)
     missing_images: List[str] = []
+    num_opinions = data.get("opinions", 1)
 
     def esc(text: Any) -> str:
         return (
@@ -85,6 +94,28 @@ def render_html(data: Dict[str, Any]) -> str:
             .replace('"', "&quot;")
             .replace("'", "&#39;")
         )
+
+    def render_opinions(opinions: List[Dict[str, Any]]) -> str:
+        """Render multiple opinions as expandable details."""
+        if not opinions or len(opinions) <= 1:
+            # Single opinion - render inline
+            if opinions:
+                return f"<div class='criterion-rationale'>{esc(opinions[0].get('rationale', ''))}</div>"
+            return ""
+
+        html = "<div class='opinions-list'>"
+        for idx, opinion in enumerate(opinions, 1):
+            score = opinion.get("score", 0)
+            status_class = "pass" if score == 1 else "fail"
+            html += (
+                f"<div class='opinion {status_class}'>"
+                f"<span class='opinion-label'>Opinion {idx}:</span> "
+                f"<span class='opinion-score'>Score {score}</span>"
+                f"<div class='opinion-rationale'>{esc(opinion.get('rationale', ''))}</div>"
+                f"</div>"
+            )
+        html += "</div>"
+        return html
 
     rows = []
     for test in tests:
@@ -98,16 +129,33 @@ def render_html(data: Dict[str, Any]) -> str:
                 criteria_html = "<div class='no-criteria'>No criteria defined for this turn.</div>"
             else:
                 for result in judge_criteria:
-                    status = "pass" if result.get("score") else "fail"
-                    if status == "fail":
+                    score = get_criterion_score(result)
+                    # Determine status: pass (1.0), partial (0 < x < 1), fail (0)
+                    if score >= 1.0:
+                        status = "pass"
+                    elif score > 0:
+                        status = "partial"
+                    else:
+                        status = "fail"
+                    if status != "pass":
                         test_has_error = True
+
+                    # Format score display
+                    if "summary_score" in result:
+                        score_display = f"{score:.2f}"
+                    else:
+                        score_display = str(int(score))
+
+                    opinions = result.get("opinions", [])
+                    opinions_html = render_opinions(opinions)
+
                     criteria_html += (
                         f"<div class='criterion {status}'>"
                         f"<div class='criterion-text'>{esc(result.get('criterion'))}</div>"
-                        f"<div class='criterion-score'>Score: {esc(result.get('score'))}</div>"
+                        f"<div class='criterion-score'>Score: {score_display}</div>"
                         f"<details class='criterion-details'>"
-                        f"<summary>Explanation</summary>"
-                        f"<div class='criterion-rationale'>{esc(result.get('rationale'))}</div>"
+                        f"<summary>{'Opinions' if len(opinions) > 1 else 'Explanation'}</summary>"
+                        f"{opinions_html}"
                         f"</details>"
                         "</div>"
                     )
@@ -218,11 +266,19 @@ def render_html(data: Dict[str, Any]) -> str:
       margin-bottom: 8px;
     }}
     .criterion.pass {{ border-left: 4px solid #2e7d32; }}
+    .criterion.partial {{ border-left: 4px solid #f9a825; background: #fffde7; }}
     .criterion.fail {{ border-left: 4px solid #c62828; }}
     .criterion-score {{ font-weight: 600; margin-top: 4px; }}
     .criterion-details {{ margin-top: 6px; }}
     .criterion-details summary {{ cursor: pointer; font-size: 12px; color: #4a4a4a; }}
     .criterion-rationale {{ margin-top: 6px; background: #f7f7f7; padding: 8px; border-radius: 4px; }}
+    .opinions-list {{ margin-top: 6px; }}
+    .opinion {{ padding: 8px; border-radius: 4px; margin-bottom: 6px; background: #f7f7f7; }}
+    .opinion.pass {{ border-left: 3px solid #2e7d32; }}
+    .opinion.fail {{ border-left: 3px solid #c62828; }}
+    .opinion-label {{ font-weight: 600; font-size: 12px; }}
+    .opinion-score {{ font-size: 12px; color: #666; margin-left: 8px; }}
+    .opinion-rationale {{ margin-top: 4px; font-size: 13px; }}
     .no-criteria {{ font-size: 12px; color: #666; padding: 8px; border: 1px dashed #ccc; border-radius: 4px; }}
     .d2-details summary {{ cursor: pointer; font-size: 12px; }}
     .missing-section {{ background: #fff3e0; border: 1px solid #ffcc80; padding: 10px; border-radius: 6px; margin-bottom: 16px; font-size: 12px; }}
@@ -236,7 +292,8 @@ def render_html(data: Dict[str, Any]) -> str:
     <div>Total tests: {summary.get("totalTests", 0)}</div>
     <div>Scenario success rate: {metrics["scenario_success"]}/{metrics["scenario_total"]} ({(metrics["scenario_success"] / metrics["scenario_total"] * 100) if metrics["scenario_total"] else 0:.1f}%)</div>
     <div>Turn success rate: {metrics["turn_success"]}/{metrics["turn_total"]} ({(metrics["turn_success"] / metrics["turn_total"] * 100) if metrics["turn_total"] else 0:.1f}%)</div>
-    <div>Criteria success rate: {metrics["criteria_success"]}/{metrics["criteria_total"]} ({(metrics["criteria_success"] / metrics["criteria_total"] * 100) if metrics["criteria_total"] else 0:.1f}%)</div>
+    <div>Criteria success rate: {metrics["criteria_success"]:.1f}/{metrics["criteria_total"]} ({(metrics["criteria_success"] / metrics["criteria_total"] * 100) if metrics["criteria_total"] else 0:.1f}%)</div>
+    {f"<div>Opinions per criterion: {num_opinions}</div>" if num_opinions > 1 else ""}
   </div>
   <div class="controls">
     <label><input type="checkbox" id="filter-errors"> Show only tests with errors</label>
@@ -293,7 +350,7 @@ def main() -> None:
     )
     print(
         "Criteria success rate: "
-        f"{metrics['criteria_success']}/{criteria_total} ({criteria_rate:.1f}%)"
+        f"{metrics['criteria_success']:.1f}/{criteria_total} ({criteria_rate:.1f}%)"
     )
     print(f"Wrote {args.html}")
 

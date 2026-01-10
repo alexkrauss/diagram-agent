@@ -9,6 +9,11 @@
       "type": "string",
       "description": "The model used for judging (e.g., 'gemini-3-flash-preview')"
     },
+    "opinions": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Number of times each criterion was judged (for detecting non-determinism)"
+    },
     "tests": {
       "type": "array",
       "description": "List of evaluated test cases",
@@ -60,20 +65,36 @@
                       "description": "Judge results for each criterion",
                       "items": {
                         "type": "object",
-                        "required": ["criterion", "score", "rationale"],
+                        "required": ["criterion", "summary_score"],
                         "properties": {
                           "criterion": {
                             "type": "string",
                             "description": "The criterion text that was evaluated"
                           },
-                          "score": {
-                            "type": "integer",
-                            "enum": [0, 1],
-                            "description": "Score: 1 if criterion is met, 0 otherwise"
+                          "summary_score": {
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 1,
+                            "description": "Average score across all opinions (0-1)"
                           },
-                          "rationale": {
-                            "type": "string",
-                            "description": "Explanation for the score"
+                          "opinions": {
+                            "type": "array",
+                            "description": "Individual judge opinions for this criterion",
+                            "items": {
+                              "type": "object",
+                              "required": ["score", "rationale"],
+                              "properties": {
+                                "score": {
+                                  "type": "integer",
+                                  "enum": [0, 1],
+                                  "description": "Score: 1 if criterion is met, 0 otherwise"
+                                },
+                                "rationale": {
+                                  "type": "string",
+                                  "description": "Explanation for the score"
+                                }
+                              }
+                            }
                           }
                         }
                       }

@@ -24,6 +24,7 @@ from jsonschema import Draft7Validator, ValidationError
 
 JUDGE_MODEL = "gemini-3-flash-preview"
 DEFAULT_PARALLELISM = 50
+DEFAULT_OPINIONS = 1
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -314,6 +315,7 @@ def evaluate_dataset(
     *,
     model: str = JUDGE_MODEL,
     parallelism: int = DEFAULT_PARALLELISM,
+    opinions: int = DEFAULT_OPINIONS,
     image_loader: Callable[[str], str] = read_png_as_base64,
 ) -> Dict[str, Any]:
     output = dict(data)
@@ -328,7 +330,8 @@ def evaluate_dataset(
     total_turns = sum(len(test.get("turns", [])) for test in raw_tests)
     if total_criteria:
         print(
-            f"Evaluating {total_turns} turns and {total_criteria} criteria...",
+            f"Evaluating {total_turns} turns and {total_criteria} criteria "
+            f"with {opinions} opinion(s) each...",
             flush=True,
         )
     else:
@@ -339,7 +342,12 @@ def evaluate_dataset(
     parsing_errors_lock = threading.Lock()
 
     tasks: List[Dict[str, Any]] = []
-    turn_results_map: Dict[Tuple[int, int], List[Dict[str, Any] | None]] = {}
+    # Map from (test_idx, turn_idx) to list of criteria text (for turns with images)
+    turn_criteria_map: Dict[Tuple[int, int], List[str]] = {}
+    # Map from (test_idx, turn_idx) to pre-filled error results (for turns without images)
+    turn_error_results: Dict[Tuple[int, int], List[Dict[str, Any]]] = {}
+    # Map from (test_idx, turn_idx, opinion_idx) to list of JudgeResult per criterion
+    opinion_results: Dict[Tuple[int, int, int], List[JudgeResult]] = {}
 
     for test_idx, test in enumerate(raw_tests):
         turns = []
@@ -365,38 +373,39 @@ def evaluate_dataset(
                     )
                     print(image_error, file=sys.stderr)
 
-            results: List[Dict[str, Any] | None] = [None] * len(criteria)
             if not png_path or not image_b64:
-                for idx, criterion in enumerate(criteria):
-                    results[idx] = {
+                # Store error results for turns without valid images
+                error_msg = image_error or (
+                    "Missing PNG path." if not png_path else "Missing image data."
+                )
+                turn_error_results[(test_idx, turn_idx)] = [
+                    {
                         "criterion": criterion,
-                        "score": 0,
-                        "rationale": image_error
-                        or (
-                            "Missing PNG path."
-                            if not png_path
-                            else "Missing image data."
-                        ),
+                        "summary_score": 0.0,
+                        "opinions": [{"score": 0, "rationale": error_msg}],
                     }
-                turn_results_map[(test_idx, turn_idx)] = results
+                    for criterion in criteria
+                ]
                 turns.append({**turn})
                 continue
 
             if criteria:
-                tasks.append(
-                    {
-                        "key": (test_idx, turn_idx),
-                        "criteria": criteria,
-                        "prompt": prompt,
-                        "image_b64": image_b64,
-                    }
-                )
+                turn_criteria_map[(test_idx, turn_idx)] = criteria
+                # Create N tasks per turn (one per opinion)
+                for opinion_idx in range(opinions):
+                    tasks.append(
+                        {
+                            "key": (test_idx, turn_idx, opinion_idx),
+                            "criteria": criteria,
+                            "prompt": prompt,
+                            "image_b64": image_b64,
+                        }
+                    )
 
-            turn_results_map[(test_idx, turn_idx)] = results
             turns.append({**turn})
         tests.append({**test, "turns": turns})
 
-    # Count total API requests (one per turn with criteria, batched)
+    # Count total API requests (opinions per turn with criteria)
     total_requests = len(tasks)
 
     # Set up status reporter
@@ -427,53 +436,77 @@ def evaluate_dataset(
                         if parse_error is not None:
                             with parsing_errors_lock:
                                 parsing_errors.append(parse_error)
-                        entries = [
-                            {
-                                "criterion": criterion,
-                                "score": item.score,
-                                "rationale": item.rationale,
-                            }
-                            for criterion, item in zip(task["criteria"], result)
-                        ]
+                        opinion_results[task["key"]] = result
                     except Exception as exc:
                         print(f"\nUnexpected judge error: {exc}", file=sys.stderr)
-                        entries = [
-                            {
-                                "criterion": criterion,
-                                "score": 0,
-                                "rationale": f"Unexpected judge error: {exc}",
-                            }
-                            for criterion in task["criteria"]
+                        # Create fallback results for all criteria
+                        opinion_results[task["key"]] = [
+                            JudgeResult(score=0, rationale=f"Unexpected judge error: {exc}")
+                            for _ in task["criteria"]
                         ]
-                    turn_key = task["key"]
-                    results_list = turn_results_map.get(turn_key, [])
-                    for idx, entry in enumerate(entries):
-                        if results_list and idx < len(results_list):
-                            results_list[idx] = entry
         finally:
             status_reporter.stop()
 
     total_time = time.monotonic() - start_time
 
+    # Aggregate opinions into final results
     for test_idx, test in enumerate(tests):
         for turn_idx, turn in enumerate(test.get("turns", [])):
-            results = turn_results_map.get((test_idx, turn_idx), [])
+            key = (test_idx, turn_idx)
+
+            # Check if this turn had error results (no valid image)
+            if key in turn_error_results:
+                turn["judge"] = {"model": model, "criteria": turn_error_results[key]}
+                continue
+
+            # Check if this turn had criteria to judge
+            if key not in turn_criteria_map:
+                turn["judge"] = {"model": model, "criteria": []}
+                continue
+
+            criteria = turn_criteria_map[key]
             finalized: List[Dict[str, Any]] = []
-            for result in results:
-                if result is None:
-                    finalized.append(
-                        {
-                            "criterion": "",
+
+            for crit_idx, criterion in enumerate(criteria):
+                # Collect all opinions for this criterion
+                all_opinions: List[Dict[str, Any]] = []
+                for opinion_idx in range(opinions):
+                    opinion_key = (test_idx, turn_idx, opinion_idx)
+                    if opinion_key in opinion_results:
+                        result = opinion_results[opinion_key]
+                        if crit_idx < len(result):
+                            all_opinions.append({
+                                "score": result[crit_idx].score,
+                                "rationale": result[crit_idx].rationale,
+                            })
+                        else:
+                            all_opinions.append({
+                                "score": 0,
+                                "rationale": "Missing criterion result from batch.",
+                            })
+                    else:
+                        all_opinions.append({
                             "score": 0,
                             "rationale": "Missing judge result.",
-                        }
-                    )
+                        })
+
+                # Compute summary score as average
+                if all_opinions:
+                    summary_score = sum(op["score"] for op in all_opinions) / len(all_opinions)
                 else:
-                    finalized.append(result)
+                    summary_score = 0.0
+
+                finalized.append({
+                    "criterion": criterion,
+                    "summary_score": summary_score,
+                    "opinions": all_opinions,
+                })
+
             turn["judge"] = {"model": model, "criteria": finalized}
 
     output["tests"] = tests
     output["judge_model"] = model
+    output["opinions"] = opinions
 
     # Print final summary
     if latency_stats.count:
@@ -503,6 +536,12 @@ def main() -> None:
     parser.add_argument("--output", default="eval-results/visual-eval-output.json")
     parser.add_argument("--eval-results-dir", default="eval-results")
     parser.add_argument("--parallelism", type=int, default=DEFAULT_PARALLELISM)
+    parser.add_argument(
+        "--opinions",
+        type=int,
+        default=DEFAULT_OPINIONS,
+        help="Number of times to judge each criterion (for detecting non-determinism)",
+    )
     args = parser.parse_args()
 
     data = load_visual_input(args.input)
@@ -513,6 +552,7 @@ def main() -> None:
         data,
         args.eval_results_dir,
         parallelism=args.parallelism,
+        opinions=args.opinions,
     )
 
     print("Validating output against schema...", flush=True)
