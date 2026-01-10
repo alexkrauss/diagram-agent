@@ -42,7 +42,7 @@ function createTestAgent(
 
   // Use the render function provided by the test harness
   // (which captures SVG/PNG files for evaluation reports)
-  return new D2Agent({ apiKey, model: "gpt-4o", renderFunction }, callback);
+  return new D2Agent({ apiKey, renderFunction }, callback);
 }
 
 describe("Benchmark: Simple Shapes and Labels", () => {
