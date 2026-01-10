@@ -4,6 +4,7 @@
 # dependencies = [
 #   "google-genai>=0.6.0",
 #   "json-repair>=0.55.0",
+#   "jsonschema>=4.0.0",
 # ]
 # ///
 import argparse
@@ -19,8 +20,45 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Tuple
 
 from json_repair import repair_json
+from jsonschema import Draft7Validator, ValidationError
 
 JUDGE_MODEL = "gemini-3-flash-preview"
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def load_schema(name: str) -> Dict[str, Any]:
+    """Load a JSON schema file from the eval-results directory."""
+    schema_path = os.path.join(SCRIPT_DIR, name)
+    with open(schema_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def validate_input(data: Dict[str, Any]) -> None:
+    """Validate input data against visual-eval-input.schema.json."""
+    schema = load_schema("visual-eval-input.schema.json")
+    validator = Draft7Validator(schema)
+    errors = list(validator.iter_errors(data))
+    if errors:
+        error_msgs = [f"  - {e.json_path}: {e.message}" for e in errors[:5]]
+        if len(errors) > 5:
+            error_msgs.append(f"  ... and {len(errors) - 5} more errors")
+        raise ValidationError(
+            f"Input validation failed:\n" + "\n".join(error_msgs)
+        )
+
+
+def validate_output(data: Dict[str, Any]) -> None:
+    """Validate output data against visual-eval-output.schema.json."""
+    schema = load_schema("visual-eval-output.schema.json")
+    validator = Draft7Validator(schema)
+    errors = list(validator.iter_errors(data))
+    if errors:
+        error_msgs = [f"  - {e.json_path}: {e.message}" for e in errors[:5]]
+        if len(errors) > 5:
+            error_msgs.append(f"  ... and {len(errors) - 5} more errors")
+        raise ValidationError(
+            f"Output validation failed:\n" + "\n".join(error_msgs)
+        )
 
 
 @dataclass
@@ -501,12 +539,19 @@ def main() -> None:
     args = parser.parse_args()
 
     data = load_visual_input(args.input)
+    print("Validating input against schema...", flush=True)
+    validate_input(data)
+
     output = evaluate_dataset(
         data,
         args.eval_results_dir,
         parallelism=args.parallelism,
         batch_criteria=args.batch_criteria,
     )
+
+    print("Validating output against schema...", flush=True)
+    validate_output(output)
+
     write_json(args.output, output)
 
     print(f"Wrote {args.output}")

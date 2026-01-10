@@ -9,7 +9,7 @@ This is a React-based web application that provides an interactive UI for an AI 
 - **Typecheck and tests**: `npm run check` (Mandatory: always run this before declaring work as complete!)
 - **Start development server**: `npm run dev`
 - **Build for production**: `npm run build` (runs TypeScript compiler then Vite build)
-- **Run the benchmark**: `npm run eval` (needs openai key in environment variable)
+- **Run the benchmark**: `npm run eval` (needs openai key and gemini key in environment variable)
 
 ## Architecture
 
@@ -60,3 +60,11 @@ The agent emits events through a callback for UI updates:
 - OpenAI API for LLM capabilities
 - Strict TypeScript configuration enabled
 - We use functional separation of packages (source folders), not technical. Example: config/, ui/, agent/ instead of components/, hooks/.
+
+## Evaluations
+
+The evaluation has three parts, explained in detail in spec/agent-testing.md:
+
+- Execution part (`npm run eval:exec`): Runs the agent on the evaluation suite
+- Judge part (`npm run eval:judge`): Runs a judge LLM on the result and checks criteria
+- Report part (`rpm run eval:report`): Produces HTML report and computes scores.

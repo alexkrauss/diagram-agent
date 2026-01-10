@@ -1,0 +1,90 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Visual Eval Output",
+  "description": "Output format from the visual judge evaluation. Extends the input format with judge results for each turn.",
+  "type": "object",
+  "required": ["tests"],
+  "properties": {
+    "judge_model": {
+      "type": "string",
+      "description": "The model used for judging (e.g., 'gemini-3-flash-preview')"
+    },
+    "tests": {
+      "type": "array",
+      "description": "List of evaluated test cases",
+      "items": {
+        "type": "object",
+        "required": ["turns"],
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "description": "Full name/identifier of the test case"
+          },
+          "turns": {
+            "type": "array",
+            "description": "Conversation turns within the test",
+            "items": {
+              "type": "object",
+              "required": ["criteria", "judge"],
+              "properties": {
+                "turnIndex": {
+                  "type": "integer",
+                  "description": "Index of this turn in the conversation"
+                },
+                "prompt": {
+                  "type": "string",
+                  "description": "The conversation context/prompt for this turn"
+                },
+                "pngPath": {
+                  "type": "string",
+                  "description": "Relative path to the PNG image that was evaluated"
+                },
+                "criteria": {
+                  "type": "array",
+                  "description": "List of criteria that were judged",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "judge": {
+                  "type": "object",
+                  "description": "Judge results for this turn",
+                  "required": ["model", "criteria"],
+                  "properties": {
+                    "model": {
+                      "type": "string",
+                      "description": "The model used for judging"
+                    },
+                    "criteria": {
+                      "type": "array",
+                      "description": "Judge results for each criterion",
+                      "items": {
+                        "type": "object",
+                        "required": ["criterion", "score", "rationale"],
+                        "properties": {
+                          "criterion": {
+                            "type": "string",
+                            "description": "The criterion text that was evaluated"
+                          },
+                          "score": {
+                            "type": "integer",
+                            "enum": [0, 1],
+                            "description": "Score: 1 if criterion is met, 0 otherwise"
+                          },
+                          "rationale": {
+                            "type": "string",
+                            "description": "Explanation for the score"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

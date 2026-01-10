@@ -1,0 +1,52 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Visual Eval Input",
+  "description": "Input format for the visual judge evaluation. Contains test cases with turns, each having criteria to evaluate.",
+  "type": "object",
+  "required": ["tests"],
+  "properties": {
+    "tests": {
+      "type": "array",
+      "description": "List of test cases to evaluate",
+      "items": {
+        "type": "object",
+        "required": ["turns"],
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "description": "Full name/identifier of the test case"
+          },
+          "turns": {
+            "type": "array",
+            "description": "Conversation turns within the test",
+            "items": {
+              "type": "object",
+              "required": ["criteria"],
+              "properties": {
+                "turnIndex": {
+                  "type": "integer",
+                  "description": "Index of this turn in the conversation"
+                },
+                "prompt": {
+                  "type": "string",
+                  "description": "The conversation context/prompt for this turn"
+                },
+                "pngPath": {
+                  "type": "string",
+                  "description": "Relative path to the PNG image to evaluate"
+                },
+                "criteria": {
+                  "type": "array",
+                  "description": "List of criteria to judge the image against",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
