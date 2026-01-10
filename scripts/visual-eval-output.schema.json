@@ -30,15 +30,37 @@
             "description": "Conversation turns within the test",
             "items": {
               "type": "object",
-              "required": ["criteria", "judge"],
+              "required": ["criteria", "turnEvents", "judge"],
               "properties": {
                 "turnIndex": {
                   "type": "integer",
                   "description": "Index of this turn in the conversation"
                 },
-                "prompt": {
-                  "type": "string",
-                  "description": "The conversation context/prompt for this turn"
+                "turnEvents": {
+                  "type": "array",
+                  "description": "Events that occurred during this turn, in chronological order",
+                  "items": {
+                    "type": "object",
+                    "required": ["type"],
+                    "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": ["user_message", "assistant_message", "tool_call"],
+                        "description": "Type of event"
+                      },
+                      "content": {
+                        "type": "string",
+                        "description": "Message content (for user_message and assistant_message)"
+                      },
+                      "toolName": {
+                        "type": "string",
+                        "description": "Name of the tool called (for tool_call)"
+                      },
+                      "arguments": {
+                        "description": "Arguments passed to the tool (for tool_call)"
+                      }
+                    }
+                  }
                 },
                 "pngPath": {
                   "type": "string",

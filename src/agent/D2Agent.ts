@@ -125,6 +125,26 @@ export class D2Agent implements DiagramAgent {
               });
             }
           }
+        } else if (event.type === "run_item_stream_event") {
+          // Handle tool call events
+          if (event.name === "tool_called" && event.item.type === "tool_call_item") {
+            const rawItem = event.item.rawItem;
+            // Only handle function calls (not computer_call or hosted_tool_call)
+            if (rawItem.type === "function_call") {
+              this.emit({
+                type: "tool_start",
+                name: rawItem.name,
+                args: JSON.parse(rawItem.arguments || "{}"),
+              });
+            }
+          } else if (event.name === "tool_output" && event.item.type === "tool_call_output_item") {
+            const rawItem = event.item.rawItem;
+            this.emit({
+              type: "tool_end",
+              name: rawItem.callId || "",
+              result: event.item.output,
+            });
+          }
         }
       }
 

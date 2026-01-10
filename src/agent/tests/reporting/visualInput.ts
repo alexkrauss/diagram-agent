@@ -1,13 +1,24 @@
-import type { RecordedEvent, CriteriaEvent, TurnCompleteEvent } from '../recording/types';
+import type { RecordedEvent, CriteriaEvent, TurnCompleteEvent, ToolCallEvent, UserMessageEvent, AssistantMessageEvent } from '../recording/types';
+
+/**
+ * Events that can occur within a turn, in chronological order
+ */
+export type TurnEvent =
+  | { type: 'user_message'; content: string }
+  | { type: 'assistant_message'; content: string }
+  | { type: 'tool_call'; toolName: string; arguments: any };
 
 export interface TurnRecord {
   turnIndex: number;
-  prompt: string;
-  promptMessages: Array<{ role: string; content: string }>;
-  answer: string;
+  /** All events in this turn, in chronological order */
+  turnEvents: TurnEvent[];
+  /** Criteria to evaluate for this turn */
   criteria: string[];
+  /** Path to the PNG screenshot for this turn */
   pngPath: string | null;
+  /** D2 diagram content at end of turn */
   d2Content: string | null;
+  /** Canvas update ID for linking to screenshot */
   canvasUpdateId: string | null;
 }
 
@@ -44,39 +55,44 @@ export interface VisualEvalInput {
   tests: TestRecord[];
 }
 
-function formatPrompt(messages: Array<{ role: string; content: string }>): string {
-  const userMessages = messages.filter((message) => message.role === 'user');
-  const source = userMessages.length > 0 ? userMessages : messages;
-
-  return source
-    .map((message) => {
-      const role = message.role.toUpperCase();
-      return `${role}: ${message.content}`;
-    })
-    .join('\n\n');
-}
-
 export function buildTurnRecords(
   events: RecordedEvent[],
   fileId: string,
   testIndex: number,
 ): TurnRecord[] {
   const criteriaByTurn = new Map<number, string[]>();
+  const eventsByTurn = new Map<number, TurnEvent[]>();
+  let currentTurnIndex = -1;
 
   for (const event of events) {
     if (event.type === 'criteria') {
       const criteriaEvent = event as CriteriaEvent;
       const existing = criteriaByTurn.get(criteriaEvent.turnIndex) || [];
       criteriaByTurn.set(criteriaEvent.turnIndex, existing.concat(criteriaEvent.criteria));
+    } else if (event.type === 'user_message') {
+      currentTurnIndex++;
+      const userEvent = event as UserMessageEvent;
+      eventsByTurn.set(currentTurnIndex, [
+        { type: 'user_message', content: userEvent.content },
+      ]);
+    } else if (event.type === 'assistant_message' && currentTurnIndex >= 0) {
+      const assistantEvent = event as AssistantMessageEvent;
+      const turnEvents = eventsByTurn.get(currentTurnIndex) || [];
+      turnEvents.push({ type: 'assistant_message', content: assistantEvent.content });
+      eventsByTurn.set(currentTurnIndex, turnEvents);
+    } else if (event.type === 'tool_call' && currentTurnIndex >= 0) {
+      const toolCallEvent = event as ToolCallEvent;
+      const turnEvents = eventsByTurn.get(currentTurnIndex) || [];
+      turnEvents.push({ type: 'tool_call', toolName: toolCallEvent.toolName, arguments: toolCallEvent.arguments });
+      eventsByTurn.set(currentTurnIndex, turnEvents);
     }
   }
 
   return events
     .filter((event): event is TurnCompleteEvent => event.type === 'turn_complete')
     .map((event) => {
-      const promptMessages = event.conversation || [];
-      const prompt = formatPrompt(promptMessages);
       const criteria = criteriaByTurn.get(event.turnIndex) || [];
+      const turnEvents = eventsByTurn.get(event.turnIndex) || [];
       const canvasUpdateId = event.canvasUpdateId || null;
       const pngPath = canvasUpdateId
         ? `./${fileId}/test-${testIndex}/${canvasUpdateId}.png`
@@ -84,9 +100,7 @@ export function buildTurnRecords(
 
       return {
         turnIndex: event.turnIndex,
-        prompt,
-        promptMessages,
-        answer: event.d2Content || '',
+        turnEvents,
         criteria,
         pngPath,
         d2Content: event.d2Content || null,

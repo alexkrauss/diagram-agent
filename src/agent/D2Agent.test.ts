@@ -199,6 +199,77 @@ describe('D2Agent', () => {
       expect(startEvents).toHaveLength(1);
       expect(completeEvents).toHaveLength(1);
     });
+
+    it('should emit tool_start event when tool is called', async () => {
+      const { run: runAgent } = await import('@openai/agents');
+
+      vi.mocked(runAgent).mockImplementation(async () => {
+        return {
+          output: [],
+          completed: Promise.resolve(),
+          [Symbol.asyncIterator]: async function* () {
+            // Simulate tool_called event from SDK
+            yield {
+              type: 'run_item_stream_event',
+              name: 'tool_called',
+              item: {
+                type: 'tool_call_item',
+                rawItem: {
+                  type: 'function_call',
+                  name: 'get_d2_context',
+                  arguments: JSON.stringify({ keyword: 'shapes' }),
+                },
+              },
+            };
+          },
+        } as any;
+      });
+
+      await agent.sendMessage('Test');
+
+      const toolStartEvents = capturedEvents.filter(e => e.type === 'tool_start');
+      expect(toolStartEvents).toHaveLength(1);
+      expect(toolStartEvents[0]).toMatchObject({
+        type: 'tool_start',
+        name: 'get_d2_context',
+        args: { keyword: 'shapes' },
+      });
+    });
+
+    it('should emit tool_end event when tool returns', async () => {
+      const { run: runAgent } = await import('@openai/agents');
+
+      vi.mocked(runAgent).mockImplementation(async () => {
+        return {
+          output: [],
+          completed: Promise.resolve(),
+          [Symbol.asyncIterator]: async function* () {
+            // Simulate tool_output event from SDK
+            yield {
+              type: 'run_item_stream_event',
+              name: 'tool_output',
+              item: {
+                type: 'tool_call_output_item',
+                rawItem: {
+                  callId: 'call_123',
+                },
+                output: 'some result',
+              },
+            };
+          },
+        } as any;
+      });
+
+      await agent.sendMessage('Test');
+
+      const toolEndEvents = capturedEvents.filter(e => e.type === 'tool_end');
+      expect(toolEndEvents).toHaveLength(1);
+      expect(toolEndEvents[0]).toMatchObject({
+        type: 'tool_end',
+        name: 'call_123',
+        result: 'some result',
+      });
+    });
   });
 
   describe('rendering and tool execution', () => {

@@ -160,20 +160,39 @@ def render_html(data: Dict[str, Any]) -> str:
                         "</div>"
                     )
 
+            # Build turn events HTML from turnEvents array (in chronological order)
+            turn_events = turn.get("turnEvents", [])
+            events_html = ""
+            for event in turn_events:
+                event_type = event.get("type", "")
+                if event_type == "user_message":
+                    content = event.get("content", "")
+                    events_html += f"<div class='event event-user'><div class='event-label'>User</div><pre>{esc(content)}</pre></div>"
+                elif event_type == "assistant_message":
+                    content = event.get("content", "")
+                    events_html += f"<div class='event event-assistant'><div class='event-label'>Assistant</div><pre>{esc(content)}</pre></div>"
+                elif event_type == "tool_call":
+                    tool_name = event.get("toolName", "")
+                    args = event.get("arguments", {})
+                    if tool_name == "get_d2_context":
+                        keyword = args.get("keyword", "unknown")
+                        events_html += f"<div class='event event-tool'>Loaded context: <code>{esc(keyword)}</code></div>"
+                    else:
+                        events_html += f"<div class='event event-tool'>Called: <code>{esc(tool_name)}</code></div>"
+
             png_path = turn.get("pngPath") or ""
             if png_path:
                 candidate = os.path.join("eval-results", png_path.lstrip("./"))
                 if not os.path.exists(candidate):
                     missing_images.append(png_path)
-            prompt_text = turn.get("prompt") or ""
             turn_blocks.append(
                 f"""
                 <div class="turn">
                   <div class="turn-header">Turn {turn.get("turnIndex")}</div>
                   <div class="turn-body">
-                    <div class="turn-prompt">
-                      <div class="section-label">User prompt</div>
-                      <pre>{esc(prompt_text)}</pre>
+                    <div class="turn-conversation">
+                      <div class="section-label">Conversation</div>
+                      {events_html}
                     </div>
                     <div class="turn-image">
                       <img src="{esc(png_path)}" alt="Turn rendering" onerror="this.style.display='none'">
@@ -281,6 +300,14 @@ def render_html(data: Dict[str, Any]) -> str:
     .opinion-rationale {{ margin-top: 4px; font-size: 13px; }}
     .no-criteria {{ font-size: 12px; color: #666; padding: 8px; border: 1px dashed #ccc; border-radius: 4px; }}
     .d2-details summary {{ cursor: pointer; font-size: 12px; }}
+    .turn-conversation {{ margin-bottom: 12px; }}
+    .event {{ margin-bottom: 8px; padding: 8px; border-radius: 4px; }}
+    .event-label {{ font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #666; margin-bottom: 4px; }}
+    .event-user {{ background: #e3f2fd; border-left: 3px solid #1976d2; }}
+    .event-assistant {{ background: #f3e5f5; border-left: 3px solid #7b1fa2; }}
+    .event-tool {{ font-size: 12px; color: #666; background: #f0f4f8; padding: 4px 8px; border-radius: 4px; border-left: 3px solid #4a90d9; }}
+    .event-tool code {{ background: #e1e8ed; padding: 1px 4px; border-radius: 2px; }}
+    .event pre {{ margin: 0; white-space: pre-wrap; font-size: 13px; }}
     .missing-section {{ background: #fff3e0; border: 1px solid #ffcc80; padding: 10px; border-radius: 6px; margin-bottom: 16px; font-size: 12px; }}
     pre {{ white-space: pre-wrap; }}
     body.filter-errors details[data-has-error="false"] {{ display: none; }}

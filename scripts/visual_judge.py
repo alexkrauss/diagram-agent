@@ -204,6 +204,26 @@ def read_png_as_base64(path: str) -> str:
         return base64.b64encode(handle.read()).decode("ascii")
 
 
+def build_prompt_from_turn_events(turn_events: List[Dict[str, Any]]) -> str:
+    """Build a conversation prompt string from turn events."""
+    parts = []
+    for event in turn_events:
+        event_type = event.get("type", "")
+        if event_type == "user_message":
+            parts.append(f"USER: {event.get('content', '')}")
+        elif event_type == "assistant_message":
+            parts.append(f"ASSISTANT: {event.get('content', '')}")
+        elif event_type == "tool_call":
+            tool_name = event.get("toolName", "")
+            args = event.get("arguments", {})
+            if tool_name == "get_d2_context":
+                keyword = args.get("keyword", "unknown")
+                parts.append(f"[Agent loaded context: {keyword}]")
+            else:
+                parts.append(f"[Agent called tool: {tool_name}]")
+    return "\n\n".join(parts)
+
+
 def build_batch_judge_prompt(prompt: str, criteria: List[str]) -> str:
     criteria_block = "\n".join(f"{idx}. {text}" for idx, text in enumerate(criteria, 1))
     return (
@@ -353,7 +373,12 @@ def evaluate_dataset(
         turns = []
         for turn_idx, turn in enumerate(test.get("turns", [])):
             criteria = turn.get("criteria", [])
-            prompt = turn.get("prompt", "")
+            # Build prompt from turnEvents (new format) or fall back to prompt field (old format)
+            turn_events = turn.get("turnEvents", [])
+            if turn_events:
+                prompt = build_prompt_from_turn_events(turn_events)
+            else:
+                prompt = turn.get("prompt", "")
             png_path = turn.get("pngPath")
             image_b64 = None
             image_error = ""
