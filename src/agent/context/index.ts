@@ -3,6 +3,7 @@ import shapes from './shapes.md?raw';
 import connections from './connections.md?raw';
 import containers from './containers.md?raw';
 import styles from './styles.md?raw';
+import icons from './icons.md?raw';
 import sequenceDiagrams from './sequence-diagrams.md?raw';
 import sqlTables from './sql-tables.md?raw';
 import umlClasses from './uml-classes.md?raw';
@@ -13,6 +14,7 @@ const contextDocs = {
   connections,
   containers,
   styles,
+  icons,
   'sequence-diagrams': sequenceDiagrams,
   'sql-tables': sqlTables,
   'uml-classes': umlClasses,
@@ -35,6 +37,10 @@ const aliasMap: Record<string, keyof typeof contextDocs> = {
   style: 'styles',
   styles: 'styles',
   styling: 'styles',
+  icon: 'icons',
+  icons: 'icons',
+  image: 'icons',
+  images: 'icons',
   sequence: 'sequence-diagrams',
   'sequence-diagram': 'sequence-diagrams',
   'sequence-diagrams': 'sequence-diagrams',

@@ -97,15 +97,42 @@ life advice: {
 
 ## Spans (activation boxes)
 
-Define spans by connecting nested objects on an actor. Spans appear where they are declared, so order them alongside messages.
+A span (activation box) shows an actor is "active" during a period. Create spans by using nested objects (dot notation) on an actor in connections.
+
+**Key syntax**: `actor.spanname` in connections creates an activation box on that actor.
 
 ```d2
 shape: sequence_diagram
-alice.t1 -> bob
-alice.t2 -> bob.a
-alice.t2.a -> bob.a
-alice.t2.a <- bob.a
-alice.t2 <- bob.a
+alice: Alice
+bob: Bob
+charlie: Charlie
+
+# Normal message
+alice -> bob: Send request
+
+# Bob becomes active (span "s1"), sends to Charlie
+bob.s1 -> charlie: Query data
+
+# Charlie returns to Bob (still in span s1)
+charlie -> bob.s1: Return results
+
+# Bob sends back to Alice (no more span - back to normal "bob")
+bob -> alice: Send response
+```
+
+**Critical**: Do NOT use block syntax `{ }` for spans. Spans are created purely through dot notation in connection statements.
+
+**Wrong** (block syntax creates groups, not spans):
+```d2
+bob.active: {
+  bob.active -> charlie: Query  # Wrong: self-message
+}
+```
+
+**Right** (dot notation directly in connections):
+```d2
+bob.active -> charlie: Query    # Creates span on bob, message to charlie
+charlie -> bob.active: Response # Message to bob's span
 ```
 
 ## Notes

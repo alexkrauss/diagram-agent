@@ -52,7 +52,7 @@ while [ -f "$KEEP_GOING_FILE" ]; do
 
     # Call the agent with the context-improvement prompt
     echo "Calling agent..."
-    claude -p "$(cat spec/context-improvement.md)"
+    claude --dangerously-skip-permissions --verbose -p "$(cat spec/context-improvement.md)"
 
     echo "Agent completed. Starting next iteration..."
 done
