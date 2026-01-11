@@ -1,6 +1,8 @@
 export interface Icon {
   name: string;
   url: string;
+  /** SVG content as a data URI (data:image/svg+xml;base64,...) */
+  dataUri?: string;
 }
 
 export interface IconLibrary {
@@ -16,4 +18,10 @@ export interface IconLibrary {
    * Matching is case-insensitive substring on name.
    */
   search(query: string, maxResults?: number): Icon[];
+
+  /**
+   * Look up the data URI for a given icon URL.
+   * Returns the data URI if the URL is from this library, otherwise undefined.
+   */
+  getDataUriForUrl(url: string): string | undefined;
 }

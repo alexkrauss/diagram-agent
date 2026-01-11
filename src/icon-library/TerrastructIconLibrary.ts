@@ -6,6 +6,7 @@ const BASE_URL = 'https://icons.terrastruct.com/';
 interface IconEntry {
   name: string;
   path: string;
+  dataUri: string;
 }
 
 interface IconDatabase {
@@ -14,9 +15,16 @@ interface IconDatabase {
 
 export class TerrastructIconLibrary implements IconLibrary {
   private icons: IconEntry[];
+  private urlToDataUri: Map<string, string>;
 
   constructor() {
     this.icons = (iconData as IconDatabase).icons;
+    // Build a lookup map from URL to dataUri for fast reverse lookup
+    this.urlToDataUri = new Map();
+    for (const entry of this.icons) {
+      const url = BASE_URL + encodeURI(entry.path);
+      this.urlToDataUri.set(url, entry.dataUri);
+    }
   }
 
   async initialize(): Promise<void> {
@@ -33,6 +41,7 @@ export class TerrastructIconLibrary implements IconLibrary {
         matches.push({
           name: entry.name,
           url: BASE_URL + encodeURI(entry.path),
+          dataUri: entry.dataUri,
         });
 
         if (matches.length >= maxResults) {
@@ -42,5 +51,9 @@ export class TerrastructIconLibrary implements IconLibrary {
     }
 
     return matches;
+  }
+
+  getDataUriForUrl(url: string): string | undefined {
+    return this.urlToDataUri.get(url);
   }
 }

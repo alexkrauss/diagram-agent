@@ -54,15 +54,36 @@ describe('TerrastructIconLibrary', () => {
       }
     });
 
-    it('returns icons with name and url properties', () => {
+    it('returns icons with name, url, and dataUri properties', () => {
       const results = library.search('database');
 
       for (const icon of results) {
         expect(icon).toHaveProperty('name');
         expect(icon).toHaveProperty('url');
+        expect(icon).toHaveProperty('dataUri');
         expect(typeof icon.name).toBe('string');
         expect(typeof icon.url).toBe('string');
+        expect(typeof icon.dataUri).toBe('string');
+        expect(icon.dataUri).toMatch(/^data:image\/svg\+xml;base64,/);
       }
+    });
+  });
+
+  describe('getDataUriForUrl', () => {
+    it('returns dataUri for known URL', () => {
+      const results = library.search('S3', 1);
+      expect(results.length).toBeGreaterThan(0);
+
+      const icon = results[0];
+      const dataUri = library.getDataUriForUrl(icon.url);
+
+      expect(dataUri).toBe(icon.dataUri);
+    });
+
+    it('returns undefined for unknown URL', () => {
+      const dataUri = library.getDataUriForUrl('https://example.com/unknown.svg');
+
+      expect(dataUri).toBeUndefined();
     });
   });
 

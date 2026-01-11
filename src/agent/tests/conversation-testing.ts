@@ -34,6 +34,7 @@ import {
 import type { RecordedEvent } from "./recording/types";
 import { D2RendererImpl } from "../../render/D2Renderer";
 import { createImageConverter } from "../../render/ImageConverter";
+import { iconLibrary } from "../../icon-library";
 
 // =============================================================================
 // Internal Helpers
@@ -50,7 +51,7 @@ async function createCapturingRenderFunction(
   testIndex: number,
 ): Promise<RenderFunction> {
   const renderer = new D2RendererImpl();
-  const imageConverter = createImageConverter();
+  const imageConverter = createImageConverter(iconLibrary);
   const testDir = path.join(process.cwd(), "eval-results", fileId, `test-${testIndex}`);
 
   // Ensure eval-results directory exists

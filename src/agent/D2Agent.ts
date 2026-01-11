@@ -16,7 +16,7 @@ import {
 import { createReplaceCanvasTool } from "./tools/replaceCanvasTool";
 import { createContextTool } from "./tools/contextTool";
 import { createFindIconTool } from "./tools/findIconTool";
-import { TerrastructIconLibrary } from "../icon-library";
+import { iconLibrary } from "../icon-library";
 import systemPrompt from "./system_prompt.md?raw";
 
 export class D2Agent implements DiagramAgent {
@@ -62,8 +62,7 @@ export class D2Agent implements DiagramAgent {
     }, config.renderFunction, (event) => this.emit(event));
     const contextTool = createContextTool();
 
-    // Create icon library and find_icon tool
-    const iconLibrary = new TerrastructIconLibrary();
+    // Create find_icon tool using shared icon library
     const findIconTool = createFindIconTool(iconLibrary, config.renderFunction);
 
     // Create agent with instructions and tools

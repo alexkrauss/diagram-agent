@@ -43,6 +43,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@swc/helpers": "^0.5.17",
     "@terrastruct/d2": "^0.1.33",
+    "@xmldom/xmldom": "^0.8.11",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.462.0",

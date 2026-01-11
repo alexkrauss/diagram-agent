@@ -9,11 +9,12 @@ import { RenderPanel } from '@/components/RenderPanel';
 import { useDiagramAgentHandler } from '@/hooks/useDiagramAgentHandler';
 import { D2RendererImpl, createImageConverter } from '@/render';
 import { useConfig } from '@/config/useConfig';
+import { iconLibrary } from '@/icon-library';
 
 function App() {
   const [config, setConfig] = useConfig();
   const [renderer] = useState(() => new D2RendererImpl());
-  const [imageConverter] = useState(() => createImageConverter());
+  const [imageConverter] = useState(() => createImageConverter(iconLibrary));
   const [isCanvasCollapsed, setIsCanvasCollapsed] = useState(false);
 
   // Use the custom hook that manages the agent, chat state, and feedback loop
